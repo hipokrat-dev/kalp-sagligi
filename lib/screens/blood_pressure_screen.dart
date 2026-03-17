@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
 import '../services/storage_service.dart';
 import '../models/health_data.dart';
@@ -35,7 +36,8 @@ class _BloodPressureScreenState extends State<BloodPressureScreen> {
     final result = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Tansiyon / Nabız Kaydet'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.cardRadius)),
+        title: Text('Tansiyon / Nabiz Kaydet', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -46,22 +48,24 @@ class _BloodPressureScreenState extends State<BloodPressureScreen> {
                     child: TextField(
                       controller: systolicCtrl,
                       keyboardType: TextInputType.number,
+                      style: GoogleFonts.inter(fontWeight: FontWeight.w500),
                       decoration: const InputDecoration(
-                        labelText: 'Büyük Tansiyon',
+                        labelText: 'Buyuk Tansiyon',
                         suffixText: 'mmHg',
                       ),
                     ),
                   ),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8),
-                    child: Text('/', style: TextStyle(fontSize: 24)),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Text('/', style: GoogleFonts.inter(fontSize: 24, color: AppTheme.textLight)),
                   ),
                   Expanded(
                     child: TextField(
                       controller: diastolicCtrl,
                       keyboardType: TextInputType.number,
+                      style: GoogleFonts.inter(fontWeight: FontWeight.w500),
                       decoration: const InputDecoration(
-                        labelText: 'Küçük Tansiyon',
+                        labelText: 'Kucuk Tansiyon',
                         suffixText: 'mmHg',
                       ),
                     ),
@@ -72,8 +76,9 @@ class _BloodPressureScreenState extends State<BloodPressureScreen> {
               TextField(
                 controller: pulseCtrl,
                 keyboardType: TextInputType.number,
+                style: GoogleFonts.inter(fontWeight: FontWeight.w500),
                 decoration: const InputDecoration(
-                  labelText: 'Nabız',
+                  labelText: 'Nabiz',
                   suffixText: 'bpm',
                   prefixIcon: Icon(Icons.favorite),
                 ),
@@ -81,19 +86,20 @@ class _BloodPressureScreenState extends State<BloodPressureScreen> {
               const SizedBox(height: 12),
               TextField(
                 controller: noteCtrl,
+                style: GoogleFonts.inter(fontWeight: FontWeight.w500),
                 decoration: const InputDecoration(
-                  labelText: 'Not (isteğe bağlı)',
-                  hintText: 'Örn: egzersiz sonrası',
+                  labelText: 'Not (istege bagli)',
+                  hintText: 'Orn: egzersiz sonrasi',
                 ),
               ),
             ],
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('İptal')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('Iptal', style: GoogleFonts.inter(fontWeight: FontWeight.w600))),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Kaydet'),
+            child: Text('Kaydet', style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
           ),
         ],
       ),
@@ -119,190 +125,316 @@ class _BloodPressureScreenState extends State<BloodPressureScreen> {
   Color _riskColor(String level) {
     return switch (level) {
       'Normal' => Colors.green,
-      'Normal Üstü' => Colors.amber,
-      'Yükselmiş' => Colors.orange,
-      'Yüksek' => AppTheme.primaryRed,
+      'Normal Ustu' => Colors.amber,
+      'Yukselmis' => Colors.orange,
+      'Yuksek' => AppTheme.primaryRed,
       'Kriz' => AppTheme.darkRed,
       _ => Colors.grey,
+    };
+  }
+
+  List<Color> _riskGradient(String level) {
+    return switch (level) {
+      'Normal' => const [Color(0xFF66BB6A), Color(0xFFA5D6A7)],
+      'Normal Ustu' => const [Color(0xFFFDD835), Color(0xFFFFF176)],
+      'Yukselmis' => const [Color(0xFFFF9800), Color(0xFFFFB74D)],
+      'Yuksek' => const [Color(0xFFE53935), Color(0xFFFF6B6B)],
+      'Kriz' => const [Color(0xFFB71C1C), Color(0xFFE53935)],
+      _ => [Colors.grey, Colors.grey.shade300],
     };
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppTheme.background,
       appBar: AppBar(
-        title: const Text('Tansiyon & Nabız'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        title: Text('Tansiyon & Nabiz', style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.w800, color: AppTheme.textDark)),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_active_rounded),
-            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ReminderSettingsScreen())),
-            tooltip: 'Tansiyon Hatırlatma Ayarları',
+          GestureDetector(
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ReminderSettingsScreen())),
+            child: Container(
+              width: 40, height: 40,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: AppTheme.cardShadow,
+              ),
+              child: const Icon(Icons.notifications_active_rounded, color: AppTheme.textDark, size: 18),
+            ),
           ),
+          const SizedBox(width: 12),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _addRecord,
-        icon: const Icon(Icons.add),
-        label: const Text('Ölçüm Ekle'),
+      floatingActionButton: GestureDetector(
+        onTap: _addRecord,
+        child: Container(
+          height: 52,
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          decoration: BoxDecoration(
+            gradient: AppTheme.primaryGradient2,
+            borderRadius: BorderRadius.circular(AppTheme.buttonRadius),
+            boxShadow: AppTheme.softShadow(AppTheme.primaryRed),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.add_rounded, color: Colors.white),
+              const SizedBox(width: 8),
+              Text('Olcum Ekle', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
+            ],
+          ),
+        ),
       ),
       body: _records.isEmpty
           ? Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.monitor_heart, size: 64, color: Colors.grey.shade300),
+                  Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryRed.withValues(alpha: 0.08),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Icons.monitor_heart_rounded, size: 40, color: AppTheme.primaryRed.withValues(alpha: 0.4)),
+                  ),
                   const SizedBox(height: 16),
-                  const Text('Henüz kayıt yok', style: TextStyle(color: Colors.grey, fontSize: 16)),
-                  const Text('İlk tansiyon ölçümünüzü kaydedin', style: TextStyle(color: Colors.grey)),
+                  Text('Henuz kayit yok', style: GoogleFonts.inter(color: AppTheme.textLight, fontSize: 16, fontWeight: FontWeight.w600)),
+                  Text('Ilk tansiyon olcumunuzu kaydedin', style: GoogleFonts.inter(color: AppTheme.textLight, fontWeight: FontWeight.w500)),
                 ],
               ),
             )
           : ListView(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
               children: [
-                // Latest Reading
+                // Latest Reading Card
                 if (_records.isNotEmpty) ...[
                   _buildLatestCard(_records.first),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
                 ],
 
                 // BP Reference Card
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('Tansiyon Referans Değerleri',
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                        const SizedBox(height: 8),
-                        _buildRefRow('Normal', '<120 / <80', Colors.green),
-                        _buildRefRow('Normal Üstü', '120-129 / <80', Colors.amber),
-                        _buildRefRow('Yükselmiş', '130-139 / 80-89', Colors.orange),
-                        _buildRefRow('Yüksek', '≥140 / ≥90', AppTheme.primaryRed),
-                        _buildRefRow('Kriz', '≥180 / ≥120', AppTheme.darkRed),
-                      ],
-                    ),
+                Container(
+                  padding: const EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+                    boxShadow: AppTheme.cardShadow,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('REFERANS DEGERLER', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.textLight, letterSpacing: 1)),
+                      const SizedBox(height: 14),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          _buildRefPill('Normal', '<120/<80', Colors.green),
+                          _buildRefPill('Normal Ustu', '120-129/<80', Colors.amber),
+                          _buildRefPill('Yukselmis', '130-139/80-89', Colors.orange),
+                          _buildRefPill('Yuksek', '>=140/>=90', AppTheme.primaryRed),
+                          _buildRefPill('Kriz', '>=180/>=120', AppTheme.darkRed),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
 
                 // History
-                const Text('Geçmiş Kayıtlar',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                const SizedBox(height: 8),
+                Text('GECMIS KAYITLAR', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.textLight, letterSpacing: 1)),
+                const SizedBox(height: 12),
                 ...List.generate(_records.length, (i) {
                   final r = _records[i];
                   final color = _riskColor(r.riskLevel);
-                  return Card(
-                    child: ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: color.withValues(alpha: 0.15),
-                        child: Icon(Icons.monitor_heart, color: color, size: 20),
-                      ),
-                      title: Text(
-                        '${r.systolic}/${r.diastolic} mmHg',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Nabız: ${r.pulse} bpm  •  ${r.riskLevel}'),
-                          Text(
-                            '${r.date.day}/${r.date.month}/${r.date.year} ${r.date.hour.toString().padLeft(2, '0')}:${r.date.minute.toString().padLeft(2, '0')}',
-                            style: TextStyle(fontSize: 12, color: AppTheme.textLight),
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 10),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+                      boxShadow: AppTheme.cardShadow,
+                    ),
+                    child: Row(
+                      children: [
+                        // Colored left border
+                        Container(
+                          width: 4,
+                          height: 80,
+                          decoration: BoxDecoration(
+                            color: color,
+                            borderRadius: const BorderRadius.only(
+                              topLeft: Radius.circular(22),
+                              bottomLeft: Radius.circular(22),
+                            ),
                           ),
-                          if (r.note != null)
-                            Text(r.note!, style: const TextStyle(fontSize: 12, fontStyle: FontStyle.italic)),
-                        ],
-                      ),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.delete_outline, size: 20),
-                        onPressed: () async {
-                          await _storage.deleteBloodPressureRecord(i);
-                          _loadData();
-                        },
-                      ),
-                      isThreeLine: true,
+                        ),
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 42,
+                                  height: 42,
+                                  decoration: BoxDecoration(
+                                    color: color.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                  child: Icon(Icons.monitor_heart_rounded, color: color, size: 20),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Text(
+                                            '${r.systolic}/${r.diastolic}',
+                                            style: GoogleFonts.inter(fontWeight: FontWeight.w800, fontSize: 16, color: AppTheme.textDark),
+                                          ),
+                                          Text(' mmHg', style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textLight, fontWeight: FontWeight.w500)),
+                                          const Spacer(),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                            decoration: BoxDecoration(
+                                              color: color.withValues(alpha: 0.1),
+                                              borderRadius: BorderRadius.circular(8),
+                                            ),
+                                            child: Text(r.riskLevel, style: GoogleFonts.inter(color: color, fontSize: 10, fontWeight: FontWeight.w700)),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        'Nabiz: ${r.pulse} bpm  -  ${r.date.day}/${r.date.month}/${r.date.year} ${r.date.hour.toString().padLeft(2, '0')}:${r.date.minute.toString().padLeft(2, '0')}',
+                                        style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textLight, fontWeight: FontWeight.w500),
+                                      ),
+                                      if (r.note != null)
+                                        Text(r.note!, style: GoogleFonts.inter(fontSize: 12, fontStyle: FontStyle.italic, color: AppTheme.textLight)),
+                                    ],
+                                  ),
+                                ),
+                                GestureDetector(
+                                  onTap: () async {
+                                    await _storage.deleteBloodPressureRecord(i);
+                                    _loadData();
+                                  },
+                                  child: Container(
+                                    width: 32,
+                                    height: 32,
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey.withValues(alpha: 0.08),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Icon(Icons.delete_outline_rounded, size: 16, color: AppTheme.textLight),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   );
                 }),
-                const SizedBox(height: 80),
               ],
             ),
     );
   }
 
   Widget _buildLatestCard(BloodPressureRecord r) {
-    final color = _riskColor(r.riskLevel);
-    return Card(
-      color: color.withValues(alpha: 0.05),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            const Text('Son Ölçüm', style: TextStyle(color: Colors.grey)),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Column(
-                  children: [
-                    Text(
-                      '${r.systolic}/${r.diastolic}',
-                      style: TextStyle(fontSize: 36, fontWeight: FontWeight.bold, color: color),
-                    ),
-                    const Text('mmHg', style: TextStyle(color: Colors.grey)),
-                  ],
-                ),
-                const SizedBox(width: 32),
-                Column(
-                  children: [
-                    Row(
-                      children: [
-                        Icon(Icons.favorite, color: AppTheme.primaryRed, size: 18),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${r.pulse}',
-                          style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-                        ),
-                      ],
-                    ),
-                    const Text('bpm', style: TextStyle(color: Colors.grey)),
-                  ],
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(20),
+    final colors = _riskGradient(r.riskLevel);
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(colors: colors, begin: Alignment.topLeft, end: Alignment.bottomRight),
+        borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+        boxShadow: [
+          BoxShadow(
+            color: colors.first.withValues(alpha: 0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Text('SON OLCUM', style: GoogleFonts.inter(color: Colors.white.withValues(alpha: 0.8), fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 1)),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Column(
+                children: [
+                  Text(
+                    '${r.systolic}/${r.diastolic}',
+                    style: GoogleFonts.inter(fontSize: 40, fontWeight: FontWeight.w800, color: Colors.white),
+                  ),
+                  Text('mmHg', style: GoogleFonts.inter(color: Colors.white.withValues(alpha: 0.7), fontWeight: FontWeight.w500)),
+                ],
               ),
-              child: Text(
-                r.riskLevel,
-                style: TextStyle(color: color, fontWeight: FontWeight.bold),
+              const SizedBox(width: 32),
+              Column(
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.favorite_rounded, color: Colors.white, size: 18),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${r.pulse}',
+                        style: GoogleFonts.inter(fontSize: 32, fontWeight: FontWeight.w800, color: Colors.white),
+                      ),
+                    ],
+                  ),
+                  Text('bpm', style: GoogleFonts.inter(color: Colors.white.withValues(alpha: 0.7), fontWeight: FontWeight.w500)),
+                ],
               ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 7),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.25),
+              borderRadius: BorderRadius.circular(20),
             ),
-          ],
-        ),
+            child: Text(
+              r.riskLevel,
+              style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildRefRow(String label, String range, Color color) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
+  Widget _buildRefPill(String label, String range, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 12, height: 12,
+            width: 8, height: 8,
             decoration: BoxDecoration(color: color, shape: BoxShape.circle),
           ),
-          const SizedBox(width: 8),
-          SizedBox(width: 90, child: Text(label, style: const TextStyle(fontSize: 13))),
-          Text(range, style: TextStyle(fontSize: 13, color: AppTheme.textLight)),
+          const SizedBox(width: 6),
+          Text(
+            '$label $range',
+            style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600, color: color),
+          ),
         ],
       ),
     );

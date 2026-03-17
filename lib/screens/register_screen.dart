@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
 import '../services/auth_service.dart';
 
@@ -45,12 +46,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     if (result.success) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Kayıt başarılı! Hoş geldiniz.'), backgroundColor: Colors.green),
+        SnackBar(
+          content: Text('Kayit basarili! Hos geldiniz.', style: GoogleFonts.inter(fontWeight: FontWeight.w500)),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
       );
       Navigator.pop(context, true);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(result.message), backgroundColor: AppTheme.primaryRed),
+        SnackBar(
+          content: Text(result.message, style: GoogleFonts.inter(fontWeight: FontWeight.w500)),
+          backgroundColor: AppTheme.primaryRed,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
       );
     }
   }
@@ -58,29 +69,35 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Kayıt Ol')),
+      backgroundColor: AppTheme.background,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+      ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
         child: Form(
           key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Hesap Oluştur', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+              Text('Hesap Olustur', style: GoogleFonts.inter(fontSize: 28, fontWeight: FontWeight.w800, color: AppTheme.textDark)),
               const SizedBox(height: 4),
-              Text('Sağlık verilerinizi güvenle takip edin', style: TextStyle(color: AppTheme.textLight)),
-              const SizedBox(height: 24),
+              Text('Saglik verilerinizi guvenle takip edin', style: GoogleFonts.inter(color: AppTheme.textLight, fontWeight: FontWeight.w500)),
+              const SizedBox(height: 32),
 
               // Ad Soyad
               TextFormField(
                 controller: _nameController,
                 textInputAction: TextInputAction.next,
+                style: GoogleFonts.inter(fontWeight: FontWeight.w500),
                 decoration: const InputDecoration(
                   labelText: 'Ad Soyad',
-                  prefixIcon: Icon(Icons.person_outline),
+                  prefixIcon: Icon(Icons.person_outline_rounded),
                 ),
                 validator: (v) {
-                  if (v == null || v.trim().length < 2) return 'Ad en az 2 karakter olmalı';
+                  if (v == null || v.trim().length < 2) return 'Ad en az 2 karakter olmali';
                   return null;
                 },
               ),
@@ -91,66 +108,79 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
                 textInputAction: TextInputAction.next,
+                style: GoogleFonts.inter(fontWeight: FontWeight.w500),
                 decoration: const InputDecoration(
                   labelText: 'E-posta',
                   prefixIcon: Icon(Icons.email_outlined),
                 ),
                 validator: (v) {
                   if (v == null || v.trim().isEmpty) return 'E-posta gerekli';
-                  if (!v.contains('@')) return 'Geçerli bir e-posta girin';
+                  if (!v.contains('@')) return 'Gecerli bir e-posta girin';
                   return null;
                 },
               ),
               const SizedBox(height: 16),
 
-              // Şifre
+              // Sifre
               TextFormField(
                 controller: _passwordController,
                 obscureText: _obscurePassword,
                 textInputAction: TextInputAction.next,
+                style: GoogleFonts.inter(fontWeight: FontWeight.w500),
                 decoration: InputDecoration(
-                  labelText: 'Şifre',
-                  prefixIcon: const Icon(Icons.lock_outline),
+                  labelText: 'Sifre',
+                  prefixIcon: const Icon(Icons.lock_outline_rounded),
                   hintText: 'En az 6 karakter',
                   suffixIcon: IconButton(
-                    icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
+                    icon: Icon(_obscurePassword ? Icons.visibility_off_rounded : Icons.visibility_rounded),
                     onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                   ),
                 ),
                 validator: (v) {
-                  if (v == null || v.length < 6) return 'Şifre en az 6 karakter olmalı';
+                  if (v == null || v.length < 6) return 'Sifre en az 6 karakter olmali';
                   return null;
                 },
               ),
               const SizedBox(height: 16),
 
-              // Şifre Tekrar
+              // Sifre Tekrar
               TextFormField(
                 controller: _confirmController,
                 obscureText: _obscureConfirm,
                 textInputAction: TextInputAction.done,
+                style: GoogleFonts.inter(fontWeight: FontWeight.w500),
                 decoration: InputDecoration(
-                  labelText: 'Şifre Tekrar',
-                  prefixIcon: const Icon(Icons.lock_outline),
+                  labelText: 'Sifre Tekrar',
+                  prefixIcon: const Icon(Icons.lock_outline_rounded),
                   suffixIcon: IconButton(
-                    icon: Icon(_obscureConfirm ? Icons.visibility_off : Icons.visibility),
+                    icon: Icon(_obscureConfirm ? Icons.visibility_off_rounded : Icons.visibility_rounded),
                     onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm),
                   ),
                 ),
                 validator: (v) {
-                  if (v != _passwordController.text) return 'Şifreler eşleşmiyor';
+                  if (v != _passwordController.text) return 'Sifreler eslesmiyor';
                   return null;
                 },
               ),
               const SizedBox(height: 32),
 
-              SizedBox(
-                width: double.infinity, height: 50,
-                child: ElevatedButton(
-                  onPressed: _loading ? null : _register,
-                  child: _loading
-                      ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                      : const Text('Kayıt Ol', style: TextStyle(fontSize: 16)),
+              // Gradient register button
+              GestureDetector(
+                onTap: _loading ? null : _register,
+                child: Container(
+                  width: double.infinity,
+                  height: AppTheme.buttonHeight,
+                  decoration: BoxDecoration(
+                    gradient: _loading ? null : AppTheme.primaryGradient2,
+                    color: _loading ? Colors.grey.shade300 : null,
+                    borderRadius: BorderRadius.circular(AppTheme.buttonRadius),
+                    boxShadow: _loading ? null : AppTheme.softShadow(AppTheme.primaryRed),
+                  ),
+                  child: Center(
+                    child: _loading
+                        ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                        : Text('Kayit Ol', style: GoogleFonts.inter(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700)),
+                  ),
                 ),
               ),
               const SizedBox(height: 16),

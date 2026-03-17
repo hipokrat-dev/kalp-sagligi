@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
 import '../services/auth_service.dart';
 import '../services/health_connect_service.dart';
@@ -47,7 +48,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: const Text('Health Connect izni verilmedi'),
+              content: Text('Health Connect izni verilmedi', style: GoogleFonts.inter(fontWeight: FontWeight.w500)),
               backgroundColor: AppTheme.primaryRed,
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -66,20 +67,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final result = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Kullanıcı Adını Değiştir'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.cardRadius)),
+        title: Text('Kullanici Adini Degistir', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
         content: TextField(
           controller: controller,
+          style: GoogleFonts.inter(fontWeight: FontWeight.w500),
           decoration: const InputDecoration(
-            labelText: 'Yeni kullanıcı adı',
-            prefixIcon: Icon(Icons.person_outline),
+            labelText: 'Yeni kullanici adi',
+            prefixIcon: Icon(Icons.person_outline_rounded),
             hintText: 'En az 3 karakter',
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('İptal')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Iptal', style: GoogleFonts.inter(fontWeight: FontWeight.w600))),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, controller.text),
-            child: const Text('Kaydet'),
+            child: Text('Kaydet', style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
           ),
         ],
       ),
@@ -90,8 +93,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(res.message),
+            content: Text(res.message, style: GoogleFonts.inter(fontWeight: FontWeight.w500)),
             backgroundColor: res.success ? Colors.green : AppTheme.primaryRed,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
         );
         if (res.success) {
@@ -110,7 +115,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final result = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Şifre Değiştir'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.cardRadius)),
+        title: Text('Sifre Degistir', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
         content: Form(
           key: formKey,
           child: SingleChildScrollView(
@@ -120,9 +126,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 TextFormField(
                   controller: currentCtrl,
                   obscureText: true,
+                  style: GoogleFonts.inter(fontWeight: FontWeight.w500),
                   decoration: const InputDecoration(
-                    labelText: 'Mevcut Şifre',
-                    prefixIcon: Icon(Icons.lock_outline),
+                    labelText: 'Mevcut Sifre',
+                    prefixIcon: Icon(Icons.lock_outline_rounded),
                   ),
                   validator: (v) => v == null || v.isEmpty ? 'Gerekli' : null,
                 ),
@@ -130,9 +137,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 TextFormField(
                   controller: newCtrl,
                   obscureText: true,
+                  style: GoogleFonts.inter(fontWeight: FontWeight.w500),
                   decoration: const InputDecoration(
-                    labelText: 'Yeni Şifre',
-                    prefixIcon: Icon(Icons.lock),
+                    labelText: 'Yeni Sifre',
+                    prefixIcon: Icon(Icons.lock_rounded),
                     hintText: 'En az 4 karakter',
                   ),
                   validator: (v) {
@@ -144,12 +152,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 TextFormField(
                   controller: confirmCtrl,
                   obscureText: true,
+                  style: GoogleFonts.inter(fontWeight: FontWeight.w500),
                   decoration: const InputDecoration(
-                    labelText: 'Yeni Şifre Tekrar',
-                    prefixIcon: Icon(Icons.lock),
+                    labelText: 'Yeni Sifre Tekrar',
+                    prefixIcon: Icon(Icons.lock_rounded),
                   ),
                   validator: (v) {
-                    if (v != newCtrl.text) return 'Şifreler eşleşmiyor';
+                    if (v != newCtrl.text) return 'Sifreler eslesmiyor';
                     return null;
                   },
                 ),
@@ -158,14 +167,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('İptal')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('Iptal', style: GoogleFonts.inter(fontWeight: FontWeight.w600))),
           ElevatedButton(
             onPressed: () {
               if (formKey.currentState!.validate()) {
                 Navigator.pop(ctx, true);
               }
             },
-            child: const Text('Değiştir'),
+            child: Text('Degistir', style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
           ),
         ],
       ),
@@ -179,8 +188,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(res.message),
+            content: Text(res.message, style: GoogleFonts.inter(fontWeight: FontWeight.w500)),
             backgroundColor: res.success ? Colors.green : AppTheme.primaryRed,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
         );
       }
@@ -191,14 +202,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Çıkış Yap'),
-        content: const Text('Hesabınızdan çıkış yapmak istediğinize emin misiniz?'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.cardRadius)),
+        title: Text('Cikis Yap', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
+        content: Text('Hesabinizdan cikis yapmak istediginize emin misiniz?', style: GoogleFonts.inter(fontWeight: FontWeight.w500)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('İptal')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('Iptal', style: GoogleFonts.inter(fontWeight: FontWeight.w600))),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryRed),
-            child: const Text('Çıkış Yap'),
+            child: Text('Cikis Yap', style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
           ),
         ],
       ),
@@ -217,158 +229,197 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Ayarlar')),
+      backgroundColor: AppTheme.background,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        title: Text('Ayarlar', style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.w800, color: AppTheme.textDark)),
+      ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
         children: [
-          // User Info Card
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    radius: 30,
-                    backgroundColor: AppTheme.primaryRed.withValues(alpha: 0.1),
+          // Profile Card with gradient avatar background
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+              boxShadow: AppTheme.cardShadow,
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    gradient: AppTheme.primaryGradient2,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: AppTheme.softShadow(AppTheme.primaryRed),
+                  ),
+                  child: Center(
                     child: Text(
                       _username.isNotEmpty ? _username[0].toUpperCase() : '?',
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.primaryRed,
+                      style: GoogleFonts.inter(fontSize: 24, fontWeight: FontWeight.w800, color: Colors.white),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _username,
+                        style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.w800, color: AppTheme.textDark),
                       ),
-                    ),
+                      const SizedBox(height: 2),
+                      Text(
+                        AuthService.instance.currentEmail ?? 'Kalp Sagligi Kullanicisi',
+                        style: GoogleFonts.inter(color: AppTheme.textLight, fontSize: 13, fontWeight: FontWeight.w500),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _username,
-                          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          AuthService.instance.currentEmail ?? 'Kalp Sağlığı Kullanıcısı',
-                          style: TextStyle(color: AppTheme.textLight, fontSize: 13),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // Account Settings
-          const Text(
-            'Hesap Ayarları',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-          ),
-          const SizedBox(height: 8),
-
-          Card(
-            child: Column(
-              children: [
-                ListTile(
-                  leading: const Icon(Icons.person_outline, color: AppTheme.primaryRed),
-                  title: const Text('Kullanıcı Adını Değiştir'),
-                  subtitle: Text(_username),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: _changeUsername,
-                ),
-                const Divider(height: 1),
-                ListTile(
-                  leading: const Icon(Icons.lock_outline, color: AppTheme.primaryRed),
-                  title: const Text('Şifre Değiştir'),
-                  subtitle: const Text('Hesap şifrenizi güncelleyin'),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: _changePassword,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // Risk Assessment
-          const Text(
-            'Sağlık Değerlendirmesi',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-          ),
-          const SizedBox(height: 8),
-
-          Card(
-            child: ListTile(
-              leading: const Icon(Icons.shield_rounded, color: Colors.orange),
-              title: const Text('Kalp Riski Değerlendirmesi'),
-              subtitle: const Text('Risk faktörlerinizi kontrol edin'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const RiskScreen()),
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // Health & Reminders
-          const Text(
-            'Sağlık & Hatırlatmalar',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-          ),
-          const SizedBox(height: 8),
-
-          Card(
-            child: Column(
-              children: [
-                ListTile(
-                  leading: const Icon(Icons.notifications_active_rounded, color: Colors.orange),
-                  title: const Text('Hatırlatma Ayarları'),
-                  subtitle: const Text('Su, hareket, tansiyon hatırlatmaları'),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const ReminderSettingsScreen()),
-                  ),
-                ),
-                const Divider(height: 1),
-                SwitchListTile(
-                  secondary: Icon(
-                    Icons.favorite_rounded,
-                    color: _healthConnectAvailable ? Colors.green : Colors.grey,
-                  ),
-                  title: const Text('Google Health Connect'),
-                  subtitle: Text(
-                    _healthConnectAvailable
-                        ? (_healthConnectEnabled ? 'Bağlı - adımlar otomatik çekilir' : 'Adım sayacı bağlantısı')
-                        : 'Bu cihazda kullanılamıyor',
-                  ),
-                  value: _healthConnectEnabled,
-                  activeThumbColor: Colors.green,
-                  activeTrackColor: Colors.green.withValues(alpha: 0.3),
-                  onChanged: _healthConnectAvailable ? _toggleHealthConnect : null,
                 ),
               ],
             ),
           ),
           const SizedBox(height: 24),
 
-          // Logout
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: _logout,
-              icon: const Icon(Icons.logout, color: AppTheme.primaryRed),
-              label: const Text(
-                'Çıkış Yap',
-                style: TextStyle(color: AppTheme.primaryRed, fontSize: 16),
+          // Account Settings
+          Text('HESAP AYARLARI', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.textLight, letterSpacing: 1)),
+          const SizedBox(height: 12),
+
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+              boxShadow: AppTheme.cardShadow,
+            ),
+            child: Column(
+              children: [
+                _buildSettingTile(
+                  icon: Icons.person_outline_rounded,
+                  iconColor: AppTheme.primaryRed,
+                  title: 'Kullanici Adini Degistir',
+                  subtitle: _username,
+                  onTap: _changeUsername,
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Divider(height: 1, color: Colors.grey.withValues(alpha: 0.1)),
+                ),
+                _buildSettingTile(
+                  icon: Icons.lock_outline_rounded,
+                  iconColor: AppTheme.primaryRed,
+                  title: 'Sifre Degistir',
+                  subtitle: 'Hesap sifrenizi guncelleyin',
+                  onTap: _changePassword,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Risk Assessment
+          Text('SAGLIK DEGERLENDIRMESI', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.textLight, letterSpacing: 1)),
+          const SizedBox(height: 12),
+
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+              boxShadow: AppTheme.cardShadow,
+            ),
+            child: _buildSettingTile(
+              icon: Icons.shield_rounded,
+              iconColor: Colors.orange,
+              title: 'Kalp Riski Degerlendirmesi',
+              subtitle: 'Risk faktorlerinizi kontrol edin',
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RiskScreen())),
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Health & Reminders
+          Text('SAGLIK & HATIRLATMALAR', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.textLight, letterSpacing: 1)),
+          const SizedBox(height: 12),
+
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+              boxShadow: AppTheme.cardShadow,
+            ),
+            child: Column(
+              children: [
+                _buildSettingTile(
+                  icon: Icons.notifications_active_rounded,
+                  iconColor: Colors.orange,
+                  title: 'Hatirlatma Ayarlari',
+                  subtitle: 'Su, hareket, tansiyon hatirlatmalari',
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ReminderSettingsScreen())),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Divider(height: 1, color: Colors.grey.withValues(alpha: 0.1)),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: SwitchListTile(
+                    secondary: Container(
+                      width: 42,
+                      height: 42,
+                      decoration: BoxDecoration(
+                        color: (_healthConnectAvailable ? Colors.green : Colors.grey).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Icon(
+                        Icons.favorite_rounded,
+                        color: _healthConnectAvailable ? Colors.green : Colors.grey,
+                        size: 20,
+                      ),
+                    ),
+                    title: Text('Google Health Connect', style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 15, color: AppTheme.textDark)),
+                    subtitle: Text(
+                      _healthConnectAvailable
+                          ? (_healthConnectEnabled ? 'Bagli - adimlar otomatik cekilir' : 'Adim sayaci baglantisi')
+                          : 'Bu cihazda kullanilamiyor',
+                      style: GoogleFonts.inter(fontSize: 13, color: AppTheme.textLight, fontWeight: FontWeight.w500),
+                    ),
+                    value: _healthConnectEnabled,
+                    activeThumbColor: Colors.green,
+                    activeTrackColor: Colors.green.withValues(alpha: 0.3),
+                    inactiveTrackColor: AppTheme.inputFill,
+                    onChanged: _healthConnectAvailable ? _toggleHealthConnect : null,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.cardRadius)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 28),
+
+          // Logout Button
+          GestureDetector(
+            onTap: _logout,
+            child: Container(
+              width: double.infinity,
+              height: AppTheme.buttonHeight,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(AppTheme.buttonRadius),
+                border: Border.all(color: AppTheme.primaryRed.withValues(alpha: 0.3)),
+                boxShadow: AppTheme.cardShadow,
               ),
-              style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: AppTheme.primaryRed),
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.logout_rounded, color: AppTheme.primaryRed, size: 20),
+                  const SizedBox(width: 8),
+                  Text('Cikis Yap', style: GoogleFonts.inter(color: AppTheme.primaryRed, fontSize: 16, fontWeight: FontWeight.w700)),
+                ],
               ),
             ),
           ),
@@ -378,20 +429,67 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Center(
             child: Column(
               children: [
-                const Icon(Icons.favorite, color: AppTheme.primaryRed, size: 28),
-                const SizedBox(height: 4),
-                const Text(
-                  'Kalp Sağlığı v1.0',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                ShaderMask(
+                  shaderCallback: (bounds) => AppTheme.primaryGradient2.createShader(bounds),
+                  child: const Icon(Icons.favorite_rounded, color: Colors.white, size: 28),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Kalp Sagligi v1.0',
+                  style: GoogleFonts.inter(fontWeight: FontWeight.w700, color: AppTheme.textDark),
                 ),
                 Text(
-                  'Verileriniz cihazınızda güvenle saklanır',
-                  style: TextStyle(fontSize: 12, color: AppTheme.textLight),
+                  'Verileriniz cihazinizda guvenle saklanir',
+                  style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textLight, fontWeight: FontWeight.w500),
                 ),
               ],
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSettingTile({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: iconColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(icon, color: iconColor, size: 20),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 15, color: AppTheme.textDark)),
+                    const SizedBox(height: 2),
+                    Text(subtitle, style: GoogleFonts.inter(fontSize: 13, color: AppTheme.textLight, fontWeight: FontWeight.w500)),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right_rounded, color: AppTheme.textLight, size: 20),
+            ],
+          ),
+        ),
       ),
     );
   }

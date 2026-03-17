@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
 import '../services/storage_service.dart';
 
@@ -41,17 +42,19 @@ class _SmokingScreenState extends State<SmokingScreen> {
     final result = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Sigara Bırakma Sayacı'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.cardRadius)),
+        title: Text('Sigara Birakma Sayaci', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('Bugün sigarayı bırakıyorsun! Bilgilerini gir:'),
+            Text('Bugun sigarayi birakiyorsun! Bilgilerini gir:', style: GoogleFonts.inter(fontWeight: FontWeight.w500, color: AppTheme.textLight)),
             const SizedBox(height: 16),
             TextField(
               controller: countController,
               keyboardType: TextInputType.number,
+              style: GoogleFonts.inter(fontWeight: FontWeight.w500),
               decoration: const InputDecoration(
-                labelText: 'Günlük sigara sayısı',
+                labelText: 'Gunluk sigara sayisi',
                 suffixText: 'adet',
               ),
             ),
@@ -59,18 +62,19 @@ class _SmokingScreenState extends State<SmokingScreen> {
             TextField(
               controller: priceController,
               keyboardType: TextInputType.number,
+              style: GoogleFonts.inter(fontWeight: FontWeight.w500),
               decoration: const InputDecoration(
-                labelText: 'Paket fiyatı',
+                labelText: 'Paket fiyati',
                 suffixText: 'TL',
               ),
             ),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('İptal')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('Iptal', style: GoogleFonts.inter(fontWeight: FontWeight.w600))),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Başla'),
+            child: Text('Basla', style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
           ),
         ],
       ),
@@ -90,14 +94,15 @@ class _SmokingScreenState extends State<SmokingScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Sayacı Sıfırla'),
-        content: const Text('Sayacı sıfırlamak istediğinize emin misiniz?'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.cardRadius)),
+        title: Text('Sayaci Sifirla', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
+        content: Text('Sayaci sifirlamak istediginize emin misiniz?', style: GoogleFonts.inter(fontWeight: FontWeight.w500)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('İptal')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('Iptal', style: GoogleFonts.inter(fontWeight: FontWeight.w600))),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryRed),
-            child: const Text('Sıfırla'),
+            child: Text('Sifirla', style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
           ),
         ],
       ),
@@ -112,35 +117,61 @@ class _SmokingScreenState extends State<SmokingScreen> {
   Widget build(BuildContext context) {
     if (_quitDate == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Sigara Bırakma')),
+        backgroundColor: AppTheme.background,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          title: Text('Sigara Birakma', style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.w800, color: AppTheme.textDark)),
+        ),
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(32),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.smoke_free, size: 80, color: Colors.teal.shade300),
-                const SizedBox(height: 24),
-                const Text(
-                  'Sigarayı Bırakmaya Hazır mısın?',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                Container(
+                  width: 100,
+                  height: 100,
+                  decoration: BoxDecoration(
+                    gradient: AppTheme.tealGradient,
+                    shape: BoxShape.circle,
+                    boxShadow: AppTheme.softShadow(const Color(0xFF26A69A)),
+                  ),
+                  child: const Icon(Icons.smoke_free, size: 48, color: Colors.white),
+                ),
+                const SizedBox(height: 28),
+                Text(
+                  'Sigarayi Birakmaya Hazir misin?',
+                  style: GoogleFonts.inter(fontSize: 22, fontWeight: FontWeight.w800, color: AppTheme.textDark),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  'Sigara bırakma sayacını başlatarak ilerlemenizi takip edin. '
-                  'Ne kadar para biriktirdiğinizi ve sağlığınıza katkısını görün.',
-                  style: TextStyle(color: AppTheme.textLight, fontSize: 14),
+                  'Sigara birakma sayacini baslatarak ilerlemenizi takip edin. '
+                  'Ne kadar para biriktirdiginizi ve sagliginiza katkisini gorun.',
+                  style: GoogleFonts.inter(color: AppTheme.textLight, fontSize: 14, fontWeight: FontWeight.w500, height: 1.5),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 32),
-                ElevatedButton.icon(
-                  onPressed: _startCounter,
-                  icon: const Icon(Icons.play_arrow),
-                  label: const Text('Sayacı Başlat', style: TextStyle(fontSize: 16)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.teal,
-                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                GestureDetector(
+                  onTap: _startCounter,
+                  child: Container(
+                    width: double.infinity,
+                    height: AppTheme.buttonHeight,
+                    decoration: BoxDecoration(
+                      gradient: AppTheme.tealGradient,
+                      borderRadius: BorderRadius.circular(AppTheme.buttonRadius),
+                      boxShadow: AppTheme.softShadow(const Color(0xFF26A69A)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.play_arrow_rounded, color: Colors.white),
+                        const SizedBox(width: 8),
+                        Text('Sayaci Baslat', style: GoogleFonts.inter(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700)),
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -157,114 +188,132 @@ class _SmokingScreenState extends State<SmokingScreen> {
     final minutes = diff.inMinutes % 60;
     final cigarettesNotSmoked = days * _dailyCount;
     final moneySaved = (days * _dailyCount / 20 * _packPrice);
-    final minutesOfLife = cigarettesNotSmoked * 11; // each cigarette ~11 min
+    final minutesOfLife = cigarettesNotSmoked * 11;
 
     return Scaffold(
+      backgroundColor: AppTheme.background,
       appBar: AppBar(
-        title: const Text('Sigara Bırakma'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        title: Text('Sigara Birakma', style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.w800, color: AppTheme.textDark)),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _resetCounter,
-            tooltip: 'Sıfırla',
+          GestureDetector(
+            onTap: _resetCounter,
+            child: Container(
+              width: 40, height: 40,
+              margin: const EdgeInsets.only(right: 12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: AppTheme.cardShadow,
+              ),
+              child: const Icon(Icons.refresh_rounded, color: AppTheme.textDark, size: 18),
+            ),
           ),
         ],
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
         children: [
-          // Main Counter
-          Card(
-            color: Colors.teal,
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                children: [
-                  const Icon(Icons.smoke_free, size: 48, color: Colors.white),
-                  const SizedBox(height: 12),
-                  const Text(
-                    'SİGARASIZ GEÇİRDİĞİN SÜRE',
-                    style: TextStyle(color: Colors.white70, fontSize: 12, letterSpacing: 1.5),
+          // Hero counter card with gradient
+          Container(
+            padding: const EdgeInsets.all(28),
+            decoration: BoxDecoration(
+              gradient: AppTheme.tealGradient,
+              borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+              boxShadow: AppTheme.softShadow(const Color(0xFF26A69A)),
+            ),
+            child: Column(
+              children: [
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(18),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '$days gün $hours saat $minutes dakika',
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Başlangıç: ${_quitDate!.day}/${_quitDate!.month}/${_quitDate!.year}',
-                    style: const TextStyle(color: Colors.white70),
-                  ),
-                ],
-              ),
+                  child: const Icon(Icons.smoke_free_rounded, size: 28, color: Colors.white),
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  'SIGARASIZ GECIRDIGIN SURE',
+                  style: GoogleFonts.inter(color: Colors.white.withValues(alpha: 0.8), fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 1.5),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  '$days gun $hours saat $minutes dakika',
+                  style: GoogleFonts.inter(fontSize: 24, fontWeight: FontWeight.w800, color: Colors.white),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Baslangic: ${_quitDate!.day}/${_quitDate!.month}/${_quitDate!.year}',
+                  style: GoogleFonts.inter(color: Colors.white.withValues(alpha: 0.7), fontWeight: FontWeight.w500),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
 
-          // Stats Grid
+          // Stats Grid as gradient mini cards
           GridView.count(
             crossAxisCount: 2,
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
+            crossAxisSpacing: 14,
+            mainAxisSpacing: 14,
             childAspectRatio: 1.5,
             children: [
               _buildStatCard(
-                Icons.money,
+                Icons.savings_rounded,
                 '${moneySaved.toStringAsFixed(0)} TL',
                 'Biriken Para',
-                Colors.green,
+                const [Color(0xFF66BB6A), Color(0xFFA5D6A7)],
               ),
               _buildStatCard(
-                Icons.no_drinks,
+                Icons.smoke_free_rounded,
                 '$cigarettesNotSmoked',
-                'İçilmeyen Sigara',
-                Colors.orange,
+                'Icilmeyen Sigara',
+                const [Color(0xFFFF9800), Color(0xFFFFB74D)],
               ),
               _buildStatCard(
-                Icons.favorite,
+                Icons.favorite_rounded,
                 '${(minutesOfLife / 60).toStringAsFixed(0)} saat',
-                'Kazanılan Ömür',
-                AppTheme.primaryRed,
+                'Kazanilan Omur',
+                const [Color(0xFFE53935), Color(0xFFFF6B6B)],
               ),
               _buildStatCard(
-                Icons.eco,
+                Icons.eco_rounded,
                 '${(cigarettesNotSmoked * 0.014).toStringAsFixed(1)} kg',
                 'Azalan CO2',
-                Colors.teal,
+                const [Color(0xFF26A69A), Color(0xFF80CBC4)],
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
 
           // Health Timeline
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Sağlık İyileşme Zaman Çizelgesi',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
-                  const SizedBox(height: 16),
-                  _buildTimeline('20 dakika', 'Nabız ve tansiyon normalleşir', days >= 0, Icons.monitor_heart),
-                  _buildTimeline('12 saat', 'Kandaki CO seviyesi normale döner', diff.inHours >= 12, Icons.air),
-                  _buildTimeline('2 hafta', 'Akciğer fonksiyonları iyileşmeye başlar', days >= 14, Icons.healing),
-                  _buildTimeline('1 ay', 'Öksürük ve nefes darlığı azalır', days >= 30, Icons.masks),
-                  _buildTimeline('1 yıl', 'Kalp hastalığı riski yarıya düşer', days >= 365, Icons.favorite),
-                  _buildTimeline('5 yıl', 'İnme riski sigara içmeyenlerle eşitlenir', days >= 1825, Icons.psychology),
-                  _buildTimeline('10 yıl', 'Akciğer kanseri riski yarıya düşer', days >= 3650, Icons.local_hospital),
-                  _buildTimeline('15 yıl', 'Kalp hastalığı riski hiç içmemiş gibi olur', days >= 5475, Icons.celebration),
-                ],
-              ),
+          Container(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+              boxShadow: AppTheme.cardShadow,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('SAGLIK IYILESME ZAMAN CIZELGESI', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.textLight, letterSpacing: 1)),
+                const SizedBox(height: 18),
+                _buildTimeline('20 dakika', 'Nabiz ve tansiyon normallesir', days >= 0, Icons.monitor_heart_rounded, isFirst: true),
+                _buildTimeline('12 saat', 'Kandaki CO seviyesi normale doner', diff.inHours >= 12, Icons.air_rounded),
+                _buildTimeline('2 hafta', 'Akciger fonksiyonlari iyilesmeye baslar', days >= 14, Icons.healing_rounded),
+                _buildTimeline('1 ay', 'Oksuruk ve nefes darligi azalir', days >= 30, Icons.masks_rounded),
+                _buildTimeline('1 yil', 'Kalp hastaligi riski yariya duser', days >= 365, Icons.favorite_rounded),
+                _buildTimeline('5 yil', 'Inme riski sigara icmeyenlerle esitlenir', days >= 1825, Icons.psychology_rounded),
+                _buildTimeline('10 yil', 'Akciger kanseri riski yariya duser', days >= 3650, Icons.local_hospital_rounded),
+                _buildTimeline('15 yil', 'Kalp hastaligi riski hic icmemis gibi olur', days >= 5475, Icons.celebration_rounded, isLast: true),
+              ],
             ),
           ),
         ],
@@ -272,64 +321,120 @@ class _SmokingScreenState extends State<SmokingScreen> {
     );
   }
 
-  Widget _buildStatCard(IconData icon, String value, String label, Color color) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: color, size: 24),
-            const SizedBox(height: 6),
-            Text(
-              value,
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color),
-            ),
-            Text(label, style: TextStyle(fontSize: 12, color: AppTheme.textLight)),
-          ],
-        ),
+  Widget _buildStatCard(IconData icon, String value, String label, List<Color> colors) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(colors: colors, begin: Alignment.topLeft, end: Alignment.bottomRight),
+        borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+        boxShadow: [
+          BoxShadow(
+            color: colors.first.withValues(alpha: 0.25),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, color: Colors.white, size: 24),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w800, color: Colors.white),
+            overflow: TextOverflow.ellipsis,
+          ),
+          Text(label, style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w500, color: Colors.white.withValues(alpha: 0.8))),
+        ],
       ),
     );
   }
 
-  Widget _buildTimeline(String time, String desc, bool achieved, IconData icon) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+  Widget _buildTimeline(String time, String desc, bool achieved, IconData icon, {bool isFirst = false, bool isLast = false}) {
+    final tealColor = const Color(0xFF26A69A);
+    return IntrinsicHeight(
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
+          // Timeline connector
+          SizedBox(
             width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: achieved ? Colors.teal : Colors.grey.shade200,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              achieved ? Icons.check : icon,
-              color: achieved ? Colors.white : Colors.grey,
-              size: 18,
+            child: Column(
+              children: [
+                if (!isFirst)
+                  Container(
+                    width: 2,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      gradient: achieved
+                          ? LinearGradient(colors: [tealColor, tealColor.withValues(alpha: 0.5)])
+                          : null,
+                      color: achieved ? null : Colors.grey.shade200,
+                    ),
+                  ),
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    gradient: achieved ? AppTheme.tealGradient : null,
+                    color: achieved ? null : Colors.grey.shade100,
+                    shape: BoxShape.circle,
+                    boxShadow: achieved
+                        ? [BoxShadow(color: tealColor.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 2))]
+                        : null,
+                  ),
+                  child: Icon(
+                    achieved ? Icons.check_rounded : icon,
+                    color: achieved ? Colors.white : Colors.grey.shade400,
+                    size: 16,
+                  ),
+                ),
+                if (!isLast)
+                  Expanded(
+                    child: Container(
+                      width: 2,
+                      decoration: BoxDecoration(
+                        gradient: achieved
+                            ? LinearGradient(
+                                colors: [tealColor.withValues(alpha: 0.5), tealColor.withValues(alpha: 0.15)],
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                              )
+                            : null,
+                        color: achieved ? null : Colors.grey.shade200,
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  time,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: achieved ? Colors.teal : AppTheme.textLight,
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    time,
+                    style: GoogleFonts.inter(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                      color: achieved ? tealColor : AppTheme.textLight,
+                    ),
                   ),
-                ),
-                Text(
-                  desc,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: achieved ? AppTheme.textDark : AppTheme.textLight,
+                  const SizedBox(height: 2),
+                  Text(
+                    desc,
+                    style: GoogleFonts.inter(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: achieved ? AppTheme.textDark : AppTheme.textLight,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ],

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'dart:math' as math;
+import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
 import '../services/storage_service.dart';
 
@@ -9,8 +11,10 @@ class RiskScreen extends StatefulWidget {
   State<RiskScreen> createState() => _RiskScreenState();
 }
 
-class _RiskScreenState extends State<RiskScreen> {
+class _RiskScreenState extends State<RiskScreen> with SingleTickerProviderStateMixin {
   final _storage = StorageService.instance;
+  late AnimationController _animController;
+  late Animation<double> _progressAnim;
 
   bool _familyHistory = false;
   bool _smoking = false;
@@ -27,6 +31,13 @@ class _RiskScreenState extends State<RiskScreen> {
   @override
   void initState() {
     super.initState();
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    );
+    _progressAnim = Tween<double>(begin: 0, end: 0).animate(
+      CurvedAnimation(parent: _animController, curve: Curves.easeOutCubic),
+    );
     _loadData();
   }
 
@@ -34,7 +45,15 @@ class _RiskScreenState extends State<RiskScreen> {
   void dispose() {
     _heightController.dispose();
     _weightController.dispose();
+    _animController.dispose();
     super.dispose();
+  }
+
+  void _animateScore() {
+    _progressAnim = Tween<double>(begin: _progressAnim.value, end: _riskScore / 100).animate(
+      CurvedAnimation(parent: _animController, curve: Curves.easeOutCubic),
+    );
+    _animController.forward(from: 0);
   }
 
   Future<void> _loadData() async {
@@ -52,6 +71,7 @@ class _RiskScreenState extends State<RiskScreen> {
         _heightController.text = _height > 0 ? _height.toStringAsFixed(0) : '';
         _weightController.text = _weight > 0 ? _weight.toStringAsFixed(0) : '';
       });
+      _animateScore();
     }
   }
 
@@ -66,6 +86,7 @@ class _RiskScreenState extends State<RiskScreen> {
       'height': _height,
       'weight': _weight,
     });
+    _animateScore();
   }
 
   double get _bmi {
@@ -75,12 +96,12 @@ class _RiskScreenState extends State<RiskScreen> {
   }
 
   String get _bmiCategory {
-    if (_bmi <= 0) return 'Hesaplanamadı';
-    if (_bmi < 18.5) return 'Zayıf';
+    if (_bmi <= 0) return 'Hesaplanamadi';
+    if (_bmi < 18.5) return 'Zayif';
     if (_bmi < 25) return 'Normal';
     if (_bmi < 30) return 'Fazla Kilolu';
-    if (_bmi < 35) return 'Obez (Sınıf I)';
-    if (_bmi < 40) return 'Obez (Sınıf II)';
+    if (_bmi < 35) return 'Obez (Sinif I)';
+    if (_bmi < 40) return 'Obez (Sinif II)';
     return 'Morbid Obez';
   }
 
@@ -100,8 +121,6 @@ class _RiskScreenState extends State<RiskScreen> {
     if (_hyperlipidemia) score += 15;
     if (_diabetes) score += 15;
     if (_inactivity) score += 10;
-
-    // BMI risk
     if (_bmi >= 30) {
       score += 15;
     } else if (_bmi >= 25) {
@@ -109,15 +128,14 @@ class _RiskScreenState extends State<RiskScreen> {
     } else if (_bmi > 0 && _bmi < 18.5) {
       score += 5;
     }
-
     return score.clamp(0, 100);
   }
 
   String get _riskLevel {
-    if (_riskScore >= 60) return 'Yüksek Risk';
+    if (_riskScore >= 60) return 'Yuksek Risk';
     if (_riskScore >= 35) return 'Orta Risk';
-    if (_riskScore > 0) return 'Düşük Risk';
-    return 'Değerlendirilmedi';
+    if (_riskScore > 0) return 'Dusuk Risk';
+    return 'Degerlendirilmedi';
   }
 
   Color get _riskColor {
@@ -125,6 +143,13 @@ class _RiskScreenState extends State<RiskScreen> {
     if (_riskScore >= 35) return Colors.orange;
     if (_riskScore > 0) return Colors.green;
     return Colors.grey;
+  }
+
+  List<Color> get _riskGradientColors {
+    if (_riskScore >= 60) return const [Color(0xFFE53935), Color(0xFFFF6B6B)];
+    if (_riskScore >= 35) return const [Color(0xFFFF9800), Color(0xFFFFB74D)];
+    if (_riskScore > 0) return const [Color(0xFF66BB6A), Color(0xFFA5D6A7)];
+    return [Colors.grey, Colors.grey.shade300];
   }
 
   int get _checkedCount {
@@ -142,370 +167,359 @@ class _RiskScreenState extends State<RiskScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Kalp Riski Değerlendirmesi')),
+      backgroundColor: AppTheme.background,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        title: Text('Kalp Riski Degerlendirmesi', style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.w800, color: AppTheme.textDark)),
+      ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
         children: [
-          // Risk Score Card
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                children: [
-                  const Text(
-                    'Kalp Hastalığı Risk Skoru',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 16),
-                  Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      SizedBox(
-                        width: 150,
-                        height: 150,
-                        child: CircularProgressIndicator(
-                          value: _riskScore / 100,
-                          strokeWidth: 14,
-                          backgroundColor: _riskColor.withValues(alpha: 0.15),
-                          valueColor: AlwaysStoppedAnimation(_riskColor),
-                          strokeCap: StrokeCap.round,
-                        ),
-                      ),
-                      Column(
-                        children: [
-                          Text(
-                            '$_riskScore',
-                            style: TextStyle(
-                              fontSize: 40,
-                              fontWeight: FontWeight.bold,
-                              color: _riskColor,
-                            ),
-                          ),
-                          Text(
-                            _riskLevel,
-                            style: TextStyle(color: _riskColor, fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    '$_checkedCount / 7 risk faktörü tespit edildi',
-                    style: TextStyle(color: AppTheme.textLight, fontSize: 13),
-                  ),
-                ],
-              ),
+          // Risk Score Card with gradient ring
+          Container(
+            padding: const EdgeInsets.all(28),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+              boxShadow: AppTheme.cardShadow,
             ),
-          ),
-          const SizedBox(height: 16),
-
-          // Risk Checklist
-          const Text(
-            'Risk Faktörleri Kontrol Listesi',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-          ),
-          const SizedBox(height: 8),
-
-          _buildCheckItem(
-            icon: Icons.family_restroom,
-            title: 'Aile Öyküsü',
-            subtitle: 'Ailede erken yaşta kalp hastalığı (erkek <55, kadın <65 yaş)',
-            value: _familyHistory,
-            riskPoints: 20,
-            onChanged: (v) {
-              setState(() => _familyHistory = v);
-              _saveData();
-            },
-          ),
-
-          _buildCheckItem(
-            icon: Icons.smoking_rooms,
-            title: 'Sigara Kullanımı',
-            subtitle: 'Aktif sigara kullanıyorum veya son 5 yılda bıraktım',
-            value: _smoking,
-            riskPoints: 20,
-            onChanged: (v) {
-              setState(() => _smoking = v);
-              _saveData();
-            },
-          ),
-
-          _buildCheckItem(
-            icon: Icons.monitor_heart,
-            title: 'Hipertansiyon',
-            subtitle: 'Yüksek tansiyon tanısı var veya ilaç kullanıyorum',
-            value: _hypertension,
-            riskPoints: 15,
-            onChanged: (v) {
-              setState(() => _hypertension = v);
-              _saveData();
-            },
-          ),
-
-          _buildCheckItem(
-            icon: Icons.bloodtype,
-            title: 'Hiperlipidemi',
-            subtitle: 'Yüksek kolesterol / trigliserit tanısı var',
-            value: _hyperlipidemia,
-            riskPoints: 15,
-            onChanged: (v) {
-              setState(() => _hyperlipidemia = v);
-              _saveData();
-            },
-          ),
-
-          _buildCheckItem(
-            icon: Icons.water_drop,
-            title: 'Diyabet',
-            subtitle: 'Tip 1 veya Tip 2 diyabet tanısı var',
-            value: _diabetes,
-            riskPoints: 15,
-            onChanged: (v) {
-              setState(() => _diabetes = v);
-              _saveData();
-            },
-          ),
-
-          _buildCheckItem(
-            icon: Icons.weekend,
-            title: 'Hareketsizlik',
-            subtitle: 'Haftada 150 dakikadan az egzersiz yapıyorum',
-            value: _inactivity,
-            riskPoints: 10,
-            onChanged: (v) {
-              setState(() => _inactivity = v);
-              _saveData();
-            },
-          ),
-
-          const SizedBox(height: 16),
-
-          // BMI Calculator
-          const Text(
-            'Boy / Kilo / VKİ Hesaplama',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-          ),
-          const SizedBox(height: 8),
-
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _heightController,
-                          keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(
-                            labelText: 'Boy',
-                            suffixText: 'cm',
-                            prefixIcon: Icon(Icons.height),
-                          ),
-                          onChanged: (v) {
-                            setState(() => _height = double.tryParse(v) ?? 0);
-                            _saveData();
-                          },
-                        ),
+            child: Column(
+              children: [
+                Text('KALP HASTALIGI RISK SKORU', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.textLight, letterSpacing: 1)),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: 170,
+                  height: 170,
+                  child: AnimatedBuilder(
+                    animation: _progressAnim,
+                    builder: (_, __) => CustomPaint(
+                      painter: _GradientRingPainter(
+                        progress: _progressAnim.value,
+                        gradientColors: _riskGradientColors,
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: TextField(
-                          controller: _weightController,
-                          keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(
-                            labelText: 'Kilo',
-                            suffixText: 'kg',
-                            prefixIcon: Icon(Icons.monitor_weight),
-                          ),
-                          onChanged: (v) {
-                            setState(() => _weight = double.tryParse(v) ?? 0);
-                            _saveData();
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  if (_bmi > 0) ...[
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: _bmiColor.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: _bmiColor.withValues(alpha: 0.3)),
-                      ),
-                      child: Column(
-                        children: [
-                          const Text('Vücut Kitle İndeksi (VKİ)',
-                              style: TextStyle(fontSize: 12, color: Colors.grey)),
-                          const SizedBox(height: 4),
-                          Text(
-                            _bmi.toStringAsFixed(1),
-                            style: TextStyle(
-                              fontSize: 36,
-                              fontWeight: FontWeight.bold,
-                              color: _bmiColor,
+                      child: Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              '$_riskScore',
+                              style: GoogleFonts.inter(fontSize: 44, fontWeight: FontWeight.w800, color: _riskColor),
                             ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: _bmiColor.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              _bmiCategory,
-                              style: TextStyle(
-                                color: _bmiColor,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 13,
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: _riskColor.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Text(
+                                _riskLevel,
+                                style: GoogleFonts.inter(color: _riskColor, fontWeight: FontWeight.w700, fontSize: 12),
                               ),
                             ),
-                          ),
-                          if (_bmi >= 25) ...[
-                            const SizedBox(height: 8),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.warning_amber, color: _bmiColor, size: 16),
-                                const SizedBox(width: 4),
-                                Text(
-                                  'Risk skora +${_bmi >= 30 ? 15 : 8} puan eklendi',
-                                  style: TextStyle(fontSize: 12, color: _bmiColor),
-                                ),
-                              ],
-                            ),
                           ],
-                        ],
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    // BMI Scale
-                    Row(
-                      children: [
-                        _buildBmiRange('Zayıf', '<18.5', Colors.blue),
-                        _buildBmiRange('Normal', '18.5-25', Colors.green),
-                        _buildBmiRange('Fazla', '25-30', Colors.orange),
-                        _buildBmiRange('Obez', '>30', AppTheme.primaryRed),
-                      ],
-                    ),
-                  ],
-                ],
-              ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  '$_checkedCount / 7 risk faktoru tespit edildi',
+                  style: GoogleFonts.inter(color: AppTheme.textLight, fontSize: 13, fontWeight: FontWeight.w500),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
+
+          // Risk Checklist
+          Text('RISK FAKTORLERI', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.textLight, letterSpacing: 1)),
+          const SizedBox(height: 12),
+
+          _buildCheckItem(
+            icon: Icons.family_restroom_rounded,
+            title: 'Aile Oykusu',
+            subtitle: 'Ailede erken yasta kalp hastaligi (erkek <55, kadin <65 yas)',
+            value: _familyHistory,
+            riskPoints: 20,
+            onChanged: (v) { setState(() => _familyHistory = v); _saveData(); },
+          ),
+          _buildCheckItem(
+            icon: Icons.smoking_rooms_rounded,
+            title: 'Sigara Kullanimi',
+            subtitle: 'Aktif sigara kullaniyorum veya son 5 yilda biraktim',
+            value: _smoking,
+            riskPoints: 20,
+            onChanged: (v) { setState(() => _smoking = v); _saveData(); },
+          ),
+          _buildCheckItem(
+            icon: Icons.monitor_heart_rounded,
+            title: 'Hipertansiyon',
+            subtitle: 'Yuksek tansiyon tanisi var veya ilac kullaniyorum',
+            value: _hypertension,
+            riskPoints: 15,
+            onChanged: (v) { setState(() => _hypertension = v); _saveData(); },
+          ),
+          _buildCheckItem(
+            icon: Icons.bloodtype_rounded,
+            title: 'Hiperlipidemi',
+            subtitle: 'Yuksek kolesterol / trigliserit tanisi var',
+            value: _hyperlipidemia,
+            riskPoints: 15,
+            onChanged: (v) { setState(() => _hyperlipidemia = v); _saveData(); },
+          ),
+          _buildCheckItem(
+            icon: Icons.water_drop_rounded,
+            title: 'Diyabet',
+            subtitle: 'Tip 1 veya Tip 2 diyabet tanisi var',
+            value: _diabetes,
+            riskPoints: 15,
+            onChanged: (v) { setState(() => _diabetes = v); _saveData(); },
+          ),
+          _buildCheckItem(
+            icon: Icons.weekend_rounded,
+            title: 'Hareketsizlik',
+            subtitle: 'Haftada 150 dakikadan az egzersiz yapiyorum',
+            value: _inactivity,
+            riskPoints: 10,
+            onChanged: (v) { setState(() => _inactivity = v); _saveData(); },
+          ),
+
+          const SizedBox(height: 20),
+
+          // BMI Calculator
+          Text('BOY / KILO / VKI HESAPLAMA', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.textLight, letterSpacing: 1)),
+          const SizedBox(height: 12),
+
+          Container(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+              boxShadow: AppTheme.cardShadow,
+            ),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _heightController,
+                        keyboardType: TextInputType.number,
+                        style: GoogleFonts.inter(fontWeight: FontWeight.w500),
+                        decoration: const InputDecoration(
+                          labelText: 'Boy',
+                          suffixText: 'cm',
+                          prefixIcon: Icon(Icons.height_rounded),
+                        ),
+                        onChanged: (v) {
+                          setState(() => _height = double.tryParse(v) ?? 0);
+                          _saveData();
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextField(
+                        controller: _weightController,
+                        keyboardType: TextInputType.number,
+                        style: GoogleFonts.inter(fontWeight: FontWeight.w500),
+                        decoration: const InputDecoration(
+                          labelText: 'Kilo',
+                          suffixText: 'kg',
+                          prefixIcon: Icon(Icons.monitor_weight_rounded),
+                        ),
+                        onChanged: (v) {
+                          setState(() => _weight = double.tryParse(v) ?? 0);
+                          _saveData();
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                if (_bmi > 0) ...[
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(18),
+                    decoration: BoxDecoration(
+                      color: _bmiColor.withValues(alpha: 0.06),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Column(
+                      children: [
+                        Text('Vucut Kitle Indeksi (VKI)', style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textLight, fontWeight: FontWeight.w500)),
+                        const SizedBox(height: 4),
+                        Text(
+                          _bmi.toStringAsFixed(1),
+                          style: GoogleFonts.inter(fontSize: 40, fontWeight: FontWeight.w800, color: _bmiColor),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+                          decoration: BoxDecoration(
+                            color: _bmiColor.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            _bmiCategory,
+                            style: GoogleFonts.inter(color: _bmiColor, fontWeight: FontWeight.w700, fontSize: 13),
+                          ),
+                        ),
+                        if (_bmi >= 25) ...[
+                          const SizedBox(height: 8),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.warning_amber_rounded, color: _bmiColor, size: 16),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Risk skora +${_bmi >= 30 ? 15 : 8} puan eklendi',
+                                style: GoogleFonts.inter(fontSize: 12, color: _bmiColor, fontWeight: FontWeight.w500),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  // BMI gradient bar
+                  Row(
+                    children: [
+                      _buildBmiRange('Zayif', '<18.5', Colors.blue),
+                      _buildBmiRange('Normal', '18.5-25', Colors.green),
+                      _buildBmiRange('Fazla', '25-30', Colors.orange),
+                      _buildBmiRange('Obez', '>30', AppTheme.primaryRed),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
 
           // Doctor Warning
           if (_riskScore > 0)
-            Card(
-              color: _riskScore >= 35
-                  ? AppTheme.primaryRed.withValues(alpha: 0.08)
-                  : Colors.orange.withValues(alpha: 0.08),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-                side: BorderSide(
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+                border: Border.all(
                   color: _riskScore >= 35
                       ? AppTheme.primaryRed.withValues(alpha: 0.3)
                       : Colors.orange.withValues(alpha: 0.3),
+                  width: 2,
                 ),
+                boxShadow: AppTheme.cardShadow,
               ),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          _riskScore >= 35 ? Icons.warning : Icons.info_outline,
-                          color: _riskScore >= 35 ? AppTheme.primaryRed : Colors.orange,
-                          size: 24,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            _riskScore >= 60
-                                ? 'Acil Doktor Görüşmesi Önerilir!'
-                                : _riskScore >= 35
-                                    ? 'Doktorunuzla Görüşmeniz Önerilir'
-                                    : 'Düzenli Kontrol Önerisi',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 15,
-                              color: _riskScore >= 35 ? AppTheme.primaryRed : Colors.orange.shade800,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      _getDoctorAdvice(),
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: AppTheme.textDark,
-                        height: 1.4,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    const Divider(),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Icon(Icons.local_hospital, color: AppTheme.primaryRed, size: 18),
-                        const SizedBox(width: 8),
-                        const Expanded(
-                          child: Text(
-                            'Bu değerlendirme tıbbi teşhis yerine geçmez. '
-                            'Risklerinizle ilgili mutlaka bir kardiyoloji uzmanına danışın.',
-                            style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic, color: Colors.grey),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          const SizedBox(height: 16),
-
-          // Risk Factor Details
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.info_outline, color: AppTheme.primaryRed, size: 20),
-                      const SizedBox(width: 8),
-                      const Text('Risk Faktörleri Hakkında',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                      Container(
+                        width: 38,
+                        height: 38,
+                        decoration: BoxDecoration(
+                          gradient: _riskScore >= 35
+                              ? AppTheme.primaryGradient2
+                              : AppTheme.orangeGradient,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          _riskScore >= 35 ? Icons.warning_rounded : Icons.info_outline_rounded,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          _riskScore >= 60
+                              ? 'Acil Doktor Gorusmesi Onerilir!'
+                              : _riskScore >= 35
+                                  ? 'Doktorunuzla Gorusmeniz Onerilir'
+                                  : 'Duzenli Kontrol Onerisi',
+                          style: GoogleFonts.inter(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 15,
+                            color: _riskScore >= 35 ? AppTheme.primaryRed : Colors.orange.shade800,
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 12),
-                  _buildInfoRow('Aile Öyküsü',
-                      'Birinci derece akrabalarınızda erken yaşta koroner arter hastalığı öyküsü riski 2 kat artırır.'),
-                  _buildInfoRow('Sigara',
-                      'Sigara, damar sertliğini hızlandırır ve kalp krizi riskini 2-4 kat artırır.'),
-                  _buildInfoRow('Hipertansiyon',
-                      'Kontrolsüz yüksek tansiyon kalp yetmezliği, inme ve böbrek hasarına yol açabilir.'),
-                  _buildInfoRow('Hiperlipidemi',
-                      'Yüksek LDL kolesterol damarlarda plak birikimine neden olarak damar tıkanıklığına yol açar.'),
-                  _buildInfoRow('Diyabet',
-                      'Diyabet damar yapısını bozar, kalp hastalığı riskini 2-4 kat artırır.'),
-                  _buildInfoRow('Hareketsizlik',
-                      'Düzenli egzersiz yapmamak kardiyovasküler hastalık riskini önemli ölçüde artırır.'),
-                  _buildInfoRow('Obezite (VKİ)',
-                      'VKİ 25 üzeri kalp hastalığı, hipertansiyon ve diyabet riskini artırır.'),
+                  Text(
+                    _getDoctorAdvice(),
+                    style: GoogleFonts.inter(fontSize: 13, color: AppTheme.textDark, height: 1.5, fontWeight: FontWeight.w500),
+                  ),
+                  const SizedBox(height: 14),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppTheme.inputFill,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.local_hospital_rounded, color: AppTheme.primaryRed, size: 18),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Bu degerlendirme tibbi teshis yerine gecmez. '
+                            'Risklerinizle ilgili mutlaka bir kardiyoloji uzmanina danisin.',
+                            style: GoogleFonts.inter(fontSize: 11, fontStyle: FontStyle.italic, color: AppTheme.textLight, fontWeight: FontWeight.w500),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
+            ),
+          const SizedBox(height: 20),
+
+          // Risk Factor Details
+          Container(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+              boxShadow: AppTheme.cardShadow,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    ShaderMask(
+                      shaderCallback: (bounds) => AppTheme.primaryGradient2.createShader(bounds),
+                      child: const Icon(Icons.info_outline_rounded, color: Colors.white, size: 20),
+                    ),
+                    const SizedBox(width: 8),
+                    Text('Risk Faktorleri Hakkinda', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 15, color: AppTheme.textDark)),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                _buildInfoRow('Aile Oykusu',
+                    'Birinci derece akrabalarinizda erken yasta koroner arter hastaligi oykusu riski 2 kat artirir.'),
+                _buildInfoRow('Sigara',
+                    'Sigara, damar sertligini hizlandirir ve kalp krizi riskini 2-4 kat artirir.'),
+                _buildInfoRow('Hipertansiyon',
+                    'Kontrolsuz yuksek tansiyon kalp yetmezligi, inme ve bobrek hasarina yol acabilir.'),
+                _buildInfoRow('Hiperlipidemi',
+                    'Yuksek LDL kolesterol damarlarda plak birikimine neden olarak damar tikanikligina yol acar.'),
+                _buildInfoRow('Diyabet',
+                    'Diyabet damar yapisini bozar, kalp hastaligi riskini 2-4 kat artirir.'),
+                _buildInfoRow('Hareketsizlik',
+                    'Duzenli egzersiz yapmamak kardiyovaskuler hastalik riskini onemli olcude artirir.'),
+                _buildInfoRow('Obezite (VKI)',
+                    'VKI 25 uzeri kalp hastaligi, hipertansiyon ve diyabet riskini artirir.'),
+              ],
             ),
           ),
           const SizedBox(height: 16),
@@ -516,26 +530,26 @@ class _RiskScreenState extends State<RiskScreen> {
 
   String _getDoctorAdvice() {
     final risks = <String>[];
-    if (_familyHistory) risks.add('aile öyküsü');
-    if (_smoking) risks.add('sigara kullanımı');
+    if (_familyHistory) risks.add('aile oykusu');
+    if (_smoking) risks.add('sigara kullanimi');
     if (_hypertension) risks.add('hipertansiyon');
     if (_hyperlipidemia) risks.add('hiperlipidemi');
     if (_diabetes) risks.add('diyabet');
     if (_inactivity) risks.add('hareketsizlik');
-    if (_bmi >= 25) risks.add('yüksek VKİ (${_bmi.toStringAsFixed(1)})');
+    if (_bmi >= 25) risks.add('yuksek VKI (${_bmi.toStringAsFixed(1)})');
 
     if (_riskScore >= 60) {
-      return 'Toplam $_checkedCount risk faktörünüz tespit edildi: '
+      return 'Toplam $_checkedCount risk faktorunuz tespit edildi: '
           '${risks.join(", ")}. '
-          'Bu risk profili ile en kısa sürede bir kardiyoloji uzmanına başvurmanız '
-          've kapsamlı bir kalp sağlığı değerlendirmesi yaptırmanız şiddetle önerilir.';
+          'Bu risk profili ile en kisa surede bir kardiyoloji uzmanina basvurmaniz '
+          've kapsamli bir kalp sagligi degerlendirmesi yaptirmaniz siddetle onerilir.';
     } else if (_riskScore >= 35) {
-      return 'Tespit edilen risk faktörleriniz: ${risks.join(", ")}. '
-          'Bu risklerin yönetimi için doktorunuzla görüşerek kişisel bir '
-          'tedavi ve yaşam tarzı planı oluşturmanız önerilir.';
+      return 'Tespit edilen risk faktorleriniz: ${risks.join(", ")}. '
+          'Bu risklerin yonetimi icin doktorunuzla goruserek kisisel bir '
+          'tedavi ve yasam tarzi plani olusturmaniz onerilir.';
     } else {
-      return 'Tespit edilen risk faktörleriniz: ${risks.join(", ")}. '
-          'Risk seviyeniz düşük olsa da düzenli sağlık kontrolleri yaptırmaya devam edin.';
+      return 'Tespit edilen risk faktorleriniz: ${risks.join(", ")}. '
+          'Risk seviyeniz dusuk olsa da duzenli saglik kontrolleri yaptirmaya devam edin.';
     }
   }
 
@@ -547,50 +561,59 @@ class _RiskScreenState extends State<RiskScreen> {
     required int riskPoints,
     required ValueChanged<bool> onChanged,
   }) {
-    final color = value ? AppTheme.primaryRed : Colors.grey;
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: value
-            ? BorderSide(color: AppTheme.primaryRed.withValues(alpha: 0.3))
-            : BorderSide.none,
+    final accentColor = value ? AppTheme.primaryRed : AppTheme.textLight;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+        boxShadow: AppTheme.cardShadow,
+        border: value ? Border.all(color: AppTheme.primaryRed.withValues(alpha: 0.2)) : null,
       ),
-      color: value ? AppTheme.primaryRed.withValues(alpha: 0.04) : null,
-      child: SwitchListTile(
-        value: value,
-        onChanged: onChanged,
-        activeTrackColor: AppTheme.primaryRed.withValues(alpha: 0.5),
-        activeThumbColor: AppTheme.primaryRed,
-        secondary: CircleAvatar(
-          backgroundColor: color.withValues(alpha: 0.1),
-          child: Icon(icon, color: color, size: 22),
-        ),
-        title: Row(
-          children: [
-            Expanded(
-              child: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+        child: SwitchListTile(
+          value: value,
+          onChanged: onChanged,
+          activeTrackColor: AppTheme.primaryRed.withValues(alpha: 0.4),
+          activeThumbColor: AppTheme.primaryRed,
+          inactiveTrackColor: AppTheme.inputFill,
+          secondary: Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: accentColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(14),
             ),
-            if (value)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: AppTheme.primaryRed.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  '+$riskPoints',
-                  style: TextStyle(
-                    color: AppTheme.primaryRed,
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
+            child: Icon(icon, color: accentColor, size: 20),
+          ),
+          title: Row(
+            children: [
+              Expanded(
+                child: Text(title, style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 14, color: AppTheme.textDark)),
+              ),
+              if (value)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryRed.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    '+$riskPoints',
+                    style: GoogleFonts.inter(color: AppTheme.primaryRed, fontSize: 11, fontWeight: FontWeight.w700),
                   ),
                 ),
-              ),
-          ],
+            ],
+          ),
+          subtitle: Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(subtitle, style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textLight, fontWeight: FontWeight.w500)),
+          ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.cardRadius)),
         ),
-        subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       ),
     );
   }
@@ -603,13 +626,13 @@ class _RiskScreenState extends State<RiskScreen> {
             height: 6,
             margin: const EdgeInsets.symmetric(horizontal: 1),
             decoration: BoxDecoration(
-              color: color,
+              gradient: LinearGradient(colors: [color, color.withValues(alpha: 0.6)]),
               borderRadius: BorderRadius.circular(3),
             ),
           ),
           const SizedBox(height: 4),
-          Text(label, style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.bold)),
-          Text(range, style: const TextStyle(fontSize: 9, color: Colors.grey)),
+          Text(label, style: GoogleFonts.inter(fontSize: 10, color: color, fontWeight: FontWeight.w700)),
+          Text(range, style: GoogleFonts.inter(fontSize: 9, color: AppTheme.textLight, fontWeight: FontWeight.w500)),
         ],
       ),
     );
@@ -621,14 +644,22 @@ class _RiskScreenState extends State<RiskScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.circle, size: 8, color: AppTheme.primaryRed),
-          const SizedBox(width: 8),
+          Container(
+            width: 6,
+            height: 6,
+            margin: const EdgeInsets.only(top: 6),
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(colors: [Color(0xFFE53935), Color(0xFFFF6B6B)]),
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 10),
           Expanded(
             child: RichText(
               text: TextSpan(
-                style: TextStyle(fontSize: 12.5, color: AppTheme.textDark, height: 1.3),
+                style: GoogleFonts.inter(fontSize: 12.5, color: AppTheme.textDark, height: 1.4, fontWeight: FontWeight.w400),
                 children: [
-                  TextSpan(text: '$title: ', style: const TextStyle(fontWeight: FontWeight.bold)),
+                  TextSpan(text: '$title: ', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 12.5)),
                   TextSpan(text: desc),
                 ],
               ),
@@ -638,4 +669,51 @@ class _RiskScreenState extends State<RiskScreen> {
       ),
     );
   }
+}
+
+class _GradientRingPainter extends CustomPainter {
+  final double progress;
+  final List<Color> gradientColors;
+
+  _GradientRingPainter({required this.progress, required this.gradientColors});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width / 2 - 14;
+
+    final bgPaint = Paint()
+      ..color = gradientColors.first.withValues(alpha: 0.12)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 14
+      ..strokeCap = StrokeCap.round;
+
+    canvas.drawCircle(center, radius, bgPaint);
+
+    if (progress > 0) {
+      final rect = Rect.fromCircle(center: center, radius: radius);
+      final gradient = SweepGradient(
+        startAngle: -math.pi / 2,
+        endAngle: -math.pi / 2 + 2 * math.pi,
+        colors: gradientColors,
+      );
+
+      final fgPaint = Paint()
+        ..shader = gradient.createShader(rect)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 14
+        ..strokeCap = StrokeCap.round;
+
+      canvas.drawArc(
+        rect,
+        -math.pi / 2,
+        2 * math.pi * progress,
+        false,
+        fgPaint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }

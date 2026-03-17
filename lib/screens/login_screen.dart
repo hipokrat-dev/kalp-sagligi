@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
 import '../services/auth_service.dart';
 import 'register_screen.dart';
@@ -47,7 +48,12 @@ class _LoginScreenState extends State<LoginScreen> {
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(result.message), backgroundColor: AppTheme.primaryRed),
+        SnackBar(
+          content: Text(result.message, style: GoogleFonts.inter(fontWeight: FontWeight.w500)),
+          backgroundColor: AppTheme.primaryRed,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
       );
     }
   }
@@ -55,6 +61,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppTheme.background,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -64,19 +71,26 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
+                  // Gradient circle logo
                   Container(
                     width: 90, height: 90,
                     decoration: BoxDecoration(
-                      color: AppTheme.primaryRed.withValues(alpha: 0.1),
+                      gradient: AppTheme.primaryGradient2,
                       shape: BoxShape.circle,
+                      boxShadow: AppTheme.softShadow(AppTheme.primaryRed),
                     ),
-                    child: const Icon(Icons.favorite, size: 48, color: AppTheme.primaryRed),
+                    child: const Icon(Icons.favorite_rounded, size: 48, color: Colors.white),
                   ),
-                  const SizedBox(height: 16),
-                  const Text('Kalp Sağlığı',
-                      style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppTheme.primaryRed)),
+                  const SizedBox(height: 20),
+                  ShaderMask(
+                    shaderCallback: (bounds) => AppTheme.primaryGradient2.createShader(bounds),
+                    child: Text(
+                      'Kalp Sagligi',
+                      style: GoogleFonts.inter(fontSize: 28, fontWeight: FontWeight.w800, color: Colors.white),
+                    ),
+                  ),
                   const SizedBox(height: 4),
-                  Text('Sağlığınız elinizde', style: TextStyle(fontSize: 14, color: AppTheme.textLight)),
+                  Text('Sagliginiz elinizde', style: GoogleFonts.inter(fontSize: 14, color: AppTheme.textLight, fontWeight: FontWeight.w500)),
                   const SizedBox(height: 40),
 
                   // E-posta
@@ -84,34 +98,36 @@ class _LoginScreenState extends State<LoginScreen> {
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
                     textInputAction: TextInputAction.next,
+                    style: GoogleFonts.inter(fontWeight: FontWeight.w500),
                     decoration: const InputDecoration(
                       labelText: 'E-posta',
                       prefixIcon: Icon(Icons.email_outlined),
                     ),
                     validator: (v) {
                       if (v == null || v.trim().isEmpty) return 'E-posta gerekli';
-                      if (!v.contains('@')) return 'Geçerli bir e-posta girin';
+                      if (!v.contains('@')) return 'Gecerli bir e-posta girin';
                       return null;
                     },
                   ),
                   const SizedBox(height: 16),
 
-                  // Şifre
+                  // Sifre
                   TextFormField(
                     controller: _passwordController,
                     obscureText: _obscurePassword,
                     textInputAction: TextInputAction.done,
                     onFieldSubmitted: (_) => _login(),
+                    style: GoogleFonts.inter(fontWeight: FontWeight.w500),
                     decoration: InputDecoration(
-                      labelText: 'Şifre',
-                      prefixIcon: const Icon(Icons.lock_outline),
+                      labelText: 'Sifre',
+                      prefixIcon: const Icon(Icons.lock_outline_rounded),
                       suffixIcon: IconButton(
-                        icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
+                        icon: Icon(_obscurePassword ? Icons.visibility_off_rounded : Icons.visibility_rounded),
                         onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                       ),
                     ),
                     validator: (v) {
-                      if (v == null || v.isEmpty) return 'Şifre gerekli';
+                      if (v == null || v.isEmpty) return 'Sifre gerekli';
                       return null;
                     },
                   ),
@@ -121,18 +137,28 @@ class _LoginScreenState extends State<LoginScreen> {
                     alignment: Alignment.centerRight,
                     child: TextButton(
                       onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ForgotPasswordScreen())),
-                      child: const Text('Şifremi Unuttum'),
+                      child: Text('Sifremi Unuttum', style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
                     ),
                   ),
                   const SizedBox(height: 16),
 
-                  SizedBox(
-                    width: double.infinity, height: 50,
-                    child: ElevatedButton(
-                      onPressed: _loading ? null : _login,
-                      child: _loading
-                          ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                          : const Text('Giriş Yap', style: TextStyle(fontSize: 16)),
+                  // Gradient login button
+                  GestureDetector(
+                    onTap: _loading ? null : _login,
+                    child: Container(
+                      width: double.infinity,
+                      height: AppTheme.buttonHeight,
+                      decoration: BoxDecoration(
+                        gradient: _loading ? null : AppTheme.primaryGradient2,
+                        color: _loading ? Colors.grey.shade300 : null,
+                        borderRadius: BorderRadius.circular(AppTheme.buttonRadius),
+                        boxShadow: _loading ? null : AppTheme.softShadow(AppTheme.primaryRed),
+                      ),
+                      child: Center(
+                        child: _loading
+                            ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                            : Text('Giris Yap', style: GoogleFonts.inter(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700)),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 24),
@@ -140,7 +166,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text('Hesabınız yok mu? ', style: TextStyle(color: AppTheme.textLight)),
+                      Text('Hesabiniz yok mu? ', style: GoogleFonts.inter(color: AppTheme.textLight, fontWeight: FontWeight.w500)),
                       TextButton(
                         onPressed: () async {
                           final registered = await Navigator.push<bool>(
@@ -150,7 +176,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const MainShell()));
                           }
                         },
-                        child: const Text('Kayıt Ol', style: TextStyle(fontWeight: FontWeight.bold)),
+                        child: Text('Kayit Ol', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
                       ),
                     ],
                   ),
