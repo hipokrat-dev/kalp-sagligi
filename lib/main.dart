@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'screens/home_screen.dart';
+import 'package:flutter/services.dart';
+import 'screens/main_shell.dart';
 import 'screens/login_screen.dart';
 import 'services/auth_service.dart';
 import 'services/notification_service.dart';
@@ -7,6 +8,12 @@ import 'theme/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.dark,
+    ),
+  );
   await NotificationService.instance.init();
   await AuthService.instance.init();
 
@@ -25,7 +32,7 @@ class KalpSagligiApp extends StatelessWidget {
       title: 'Kalp Sağlığı',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      home: isLoggedIn ? const HomeScreen() : const LoginScreen(),
+      home: isLoggedIn ? const MainShell() : const LoginScreen(),
     );
   }
 }

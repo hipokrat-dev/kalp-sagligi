@@ -3,7 +3,7 @@ import '../theme/app_theme.dart';
 import '../services/auth_service.dart';
 import 'register_screen.dart';
 import 'forgot_password_screen.dart';
-import 'home_screen.dart';
+import 'main_shell.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -43,7 +43,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (result.success) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
+        MaterialPageRoute(builder: (_) => const MainShell()),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -187,7 +187,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           if (registered == true && context.mounted) {
                             Navigator.pushReplacement(
                               context,
-                              MaterialPageRoute(builder: (_) => const HomeScreen()),
+                              MaterialPageRoute(builder: (_) => const MainShell()),
                             );
                           }
                         },
