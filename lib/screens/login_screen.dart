@@ -13,7 +13,7 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _usernameController = TextEditingController();
+  final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _obscurePassword = true;
@@ -21,7 +21,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   void dispose() {
-    _usernameController.dispose();
+    _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
@@ -32,7 +32,7 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _loading = true);
 
     final result = await AuthService.instance.login(
-      username: _usernameController.text,
+      email: _emailController.text,
       password: _passwordController.text,
     );
 
@@ -47,10 +47,7 @@ class _LoginScreenState extends State<LoginScreen> {
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(result.message),
-          backgroundColor: AppTheme.primaryRed,
-        ),
+        SnackBar(content: Text(result.message), backgroundColor: AppTheme.primaryRed),
       );
     }
   }
@@ -67,52 +64,39 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Logo / Header
                   Container(
-                    width: 90,
-                    height: 90,
+                    width: 90, height: 90,
                     decoration: BoxDecoration(
                       color: AppTheme.primaryRed.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(
-                      Icons.favorite,
-                      size: 48,
-                      color: AppTheme.primaryRed,
-                    ),
+                    child: const Icon(Icons.favorite, size: 48, color: AppTheme.primaryRed),
                   ),
                   const SizedBox(height: 16),
-                  const Text(
-                    'Kalp Sağlığı',
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.primaryRed,
-                    ),
-                  ),
+                  const Text('Kalp Sağlığı',
+                      style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppTheme.primaryRed)),
                   const SizedBox(height: 4),
-                  Text(
-                    'Sağlığınız elinizde',
-                    style: TextStyle(fontSize: 14, color: AppTheme.textLight),
-                  ),
+                  Text('Sağlığınız elinizde', style: TextStyle(fontSize: 14, color: AppTheme.textLight)),
                   const SizedBox(height: 40),
 
-                  // Username
+                  // E-posta
                   TextFormField(
-                    controller: _usernameController,
+                    controller: _emailController,
+                    keyboardType: TextInputType.emailAddress,
                     textInputAction: TextInputAction.next,
                     decoration: const InputDecoration(
-                      labelText: 'Kullanıcı Adı',
-                      prefixIcon: Icon(Icons.person_outline),
+                      labelText: 'E-posta',
+                      prefixIcon: Icon(Icons.email_outlined),
                     ),
                     validator: (v) {
-                      if (v == null || v.trim().isEmpty) return 'Kullanıcı adı gerekli';
+                      if (v == null || v.trim().isEmpty) return 'E-posta gerekli';
+                      if (!v.contains('@')) return 'Geçerli bir e-posta girin';
                       return null;
                     },
                   ),
                   const SizedBox(height: 16),
 
-                  // Password
+                  // Şifre
                   TextFormField(
                     controller: _passwordController,
                     obscureText: _obscurePassword,
@@ -122,9 +106,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       labelText: 'Şifre',
                       prefixIcon: const Icon(Icons.lock_outline),
                       suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscurePassword ? Icons.visibility_off : Icons.visibility,
-                        ),
+                        icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
                         onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                       ),
                     ),
@@ -135,66 +117,40 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 8),
 
-                  // Forgot Password
                   Align(
                     alignment: Alignment.centerRight,
                     child: TextButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const ForgotPasswordScreen()),
-                        );
-                      },
+                      onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ForgotPasswordScreen())),
                       child: const Text('Şifremi Unuttum'),
                     ),
                   ),
                   const SizedBox(height: 16),
 
-                  // Login Button
                   SizedBox(
-                    width: double.infinity,
-                    height: 50,
+                    width: double.infinity, height: 50,
                     child: ElevatedButton(
                       onPressed: _loading ? null : _login,
                       child: _loading
-                          ? const SizedBox(
-                              width: 24,
-                              height: 24,
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
-                                strokeWidth: 2,
-                              ),
-                            )
+                          ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
                           : const Text('Giriş Yap', style: TextStyle(fontSize: 16)),
                     ),
                   ),
                   const SizedBox(height: 24),
 
-                  // Register Link
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(
-                        'Hesabınız yok mu? ',
-                        style: TextStyle(color: AppTheme.textLight),
-                      ),
+                      Text('Hesabınız yok mu? ', style: TextStyle(color: AppTheme.textLight)),
                       TextButton(
                         onPressed: () async {
                           final registered = await Navigator.push<bool>(
-                            context,
-                            MaterialPageRoute(builder: (_) => const RegisterScreen()),
+                            context, MaterialPageRoute(builder: (_) => const RegisterScreen()),
                           );
                           if (registered == true && context.mounted) {
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(builder: (_) => const MainShell()),
-                            );
+                            Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const MainShell()));
                           }
                         },
-                        child: const Text(
-                          'Kayıt Ol',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
+                        child: const Text('Kayıt Ol', style: TextStyle(fontWeight: FontWeight.bold)),
                       ),
                     ],
                   ),

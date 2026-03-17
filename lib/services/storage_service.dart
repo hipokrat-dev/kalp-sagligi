@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/health_data.dart';
 import 'auth_service.dart';
@@ -10,6 +11,7 @@ class StorageService {
 
   late SharedPreferences _prefs;
   bool _initialized = false;
+  final FirebaseFirestore _db = FirebaseFirestore.instance;
 
   Future<void> _ensureInitialized() async {
     if (!_initialized) {
@@ -18,285 +20,372 @@ class StorageService {
     }
   }
 
-  String get _prefix {
-    final userId = AuthService.instance.currentUserId;
-    return userId != null ? 'u_${userId}_' : '';
+  // Firestore doc reference for current user
+  DocumentReference? get _userDoc {
+    final uid = AuthService.instance.currentUserId;
+    if (uid == null) return null;
+    return _db.collection('users').doc(uid);
   }
 
-  String _key(String key) => '$_prefix$key';
+  CollectionReference? get _dailyCol {
+    return _userDoc?.collection('daily');
+  }
 
   String _dateKey(DateTime date) =>
       '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
 
-  // Steps
-  Future<int> getSteps(DateTime date) async {
+  // ── Helper: get/set with Firestore sync ──
+
+  Future<Map<String, dynamic>> _getDailyData(DateTime date) async {
     await _ensureInitialized();
-    return _prefs.getInt(_key('steps_${_dateKey(date)}')) ?? 0;
+    final key = _dateKey(date);
+
+    // Try Firestore first
+    try {
+      final doc = await _dailyCol?.doc(key).get();
+      if (doc != null && doc.exists) {
+        final data = doc.data() as Map<String, dynamic>;
+        // Cache locally
+        _prefs.setString('cache_daily_$key', jsonEncode(data));
+        return data;
+      }
+    } catch (_) {}
+
+    // Fallback to local cache
+    final cached = _prefs.getString('cache_daily_$key');
+    if (cached != null) return Map<String, dynamic>.from(jsonDecode(cached));
+    return {};
+  }
+
+  Future<void> _updateDailyData(DateTime date, Map<String, dynamic> updates) async {
+    await _ensureInitialized();
+    final key = _dateKey(date);
+
+    // Update local cache
+    final current = await _getDailyData(date);
+    current.addAll(updates);
+    _prefs.setString('cache_daily_$key', jsonEncode(current));
+
+    // Sync to Firestore
+    try {
+      await _dailyCol?.doc(key).set(updates, SetOptions(merge: true));
+    } catch (_) {}
+  }
+
+  Future<Map<String, dynamic>> _getUserSettings() async {
+    await _ensureInitialized();
+
+    try {
+      final doc = await _userDoc?.collection('settings').doc('prefs').get();
+      if (doc != null && doc.exists) {
+        final data = doc.data() as Map<String, dynamic>;
+        _prefs.setString('cache_settings', jsonEncode(data));
+        return data;
+      }
+    } catch (_) {}
+
+    final cached = _prefs.getString('cache_settings');
+    if (cached != null) return Map<String, dynamic>.from(jsonDecode(cached));
+    return {};
+  }
+
+  Future<void> _updateUserSettings(Map<String, dynamic> updates) async {
+    await _ensureInitialized();
+
+    final current = await _getUserSettings();
+    current.addAll(updates);
+    _prefs.setString('cache_settings', jsonEncode(current));
+
+    try {
+      await _userDoc?.collection('settings').doc('prefs').set(updates, SetOptions(merge: true));
+    } catch (_) {}
+  }
+
+  // ── Steps ──
+
+  Future<int> getSteps(DateTime date) async {
+    final data = await _getDailyData(date);
+    return (data['steps'] as int?) ?? 0;
   }
 
   Future<void> setSteps(DateTime date, int steps) async {
-    await _ensureInitialized();
-    await _prefs.setInt(_key('steps_${_dateKey(date)}'), steps);
+    await _updateDailyData(date, {'steps': steps});
   }
 
-  // Water
+  // ── Water ──
+
   Future<int> getWaterGlasses(DateTime date) async {
-    await _ensureInitialized();
-    return _prefs.getInt(_key('water_${_dateKey(date)}')) ?? 0;
+    final data = await _getDailyData(date);
+    return (data['water'] as int?) ?? 0;
   }
 
   Future<void> setWaterGlasses(DateTime date, int glasses) async {
-    await _ensureInitialized();
-    await _prefs.setInt(_key('water_${_dateKey(date)}'), glasses);
+    await _updateDailyData(date, {'water': glasses});
   }
 
-  // Blood Pressure
+  // ── Blood Pressure ──
+
   Future<List<BloodPressureRecord>> getBloodPressureRecords() async {
+    try {
+      final snapshot = await _userDoc
+          ?.collection('blood_pressure')
+          .orderBy('date', descending: true)
+          .limit(100)
+          .get();
+
+      if (snapshot != null && snapshot.docs.isNotEmpty) {
+        final records = snapshot.docs
+            .map((d) => BloodPressureRecord.fromJson(d.data()))
+            .toList();
+        // Cache locally
+        await _ensureInitialized();
+        _prefs.setString('cache_bp', jsonEncode(records.map((e) => e.toJson()).toList()));
+        return records;
+      }
+    } catch (_) {}
+
+    // Fallback to local cache
     await _ensureInitialized();
-    final data = _prefs.getString(_key('bp_records'));
-    if (data == null) return [];
-    final list = jsonDecode(data) as List;
-    return list.map((e) => BloodPressureRecord.fromJson(e)).toList()
-      ..sort((a, b) => b.date.compareTo(a.date));
+    final cached = _prefs.getString('cache_bp');
+    if (cached != null) {
+      final list = jsonDecode(cached) as List;
+      return list.map((e) => BloodPressureRecord.fromJson(e)).toList();
+    }
+    return [];
   }
 
   Future<void> addBloodPressureRecord(BloodPressureRecord record) async {
+    try {
+      await _userDoc?.collection('blood_pressure').add(record.toJson());
+    } catch (_) {}
+
+    // Update local cache
     await _ensureInitialized();
     final records = await getBloodPressureRecords();
     records.insert(0, record);
-    await _prefs.setString(
-      _key('bp_records'),
-      jsonEncode(records.map((e) => e.toJson()).toList()),
-    );
+    _prefs.setString('cache_bp', jsonEncode(records.map((e) => e.toJson()).toList()));
   }
 
   Future<void> deleteBloodPressureRecord(int index) async {
+    try {
+      final snapshot = await _userDoc
+          ?.collection('blood_pressure')
+          .orderBy('date', descending: true)
+          .limit(100)
+          .get();
+
+      if (snapshot != null && index < snapshot.docs.length) {
+        await snapshot.docs[index].reference.delete();
+      }
+    } catch (_) {}
+
     await _ensureInitialized();
     final records = await getBloodPressureRecords();
     if (index < records.length) {
       records.removeAt(index);
-      await _prefs.setString(
-        _key('bp_records'),
-        jsonEncode(records.map((e) => e.toJson()).toList()),
-      );
+      _prefs.setString('cache_bp', jsonEncode(records.map((e) => e.toJson()).toList()));
     }
   }
 
-  // Nutrition
+  // ── Nutrition ──
+
   Future<List<NutritionEntry>> getNutritionEntries(DateTime date) async {
-    await _ensureInitialized();
-    final data = _prefs.getString(_key('nutrition_${_dateKey(date)}'));
-    if (data == null) return [];
-    final list = jsonDecode(data) as List;
-    return list.map((e) => NutritionEntry.fromJson(e)).toList();
+    final data = await _getDailyData(date);
+    final list = data['nutrition'] as List?;
+    if (list == null) return [];
+    return list.map((e) => NutritionEntry.fromJson(Map<String, dynamic>.from(e))).toList();
   }
 
   Future<void> addNutritionEntry(DateTime date, NutritionEntry entry) async {
-    await _ensureInitialized();
     final entries = await getNutritionEntries(date);
     entries.add(entry);
-    await _prefs.setString(
-      _key('nutrition_${_dateKey(date)}'),
-      jsonEncode(entries.map((e) => e.toJson()).toList()),
-    );
+    await _updateDailyData(date, {
+      'nutrition': entries.map((e) => e.toJson()).toList(),
+    });
   }
 
   Future<void> deleteNutritionEntry(DateTime date, int index) async {
-    await _ensureInitialized();
     final entries = await getNutritionEntries(date);
     if (index < entries.length) {
       entries.removeAt(index);
-      await _prefs.setString(
-        _key('nutrition_${_dateKey(date)}'),
-        jsonEncode(entries.map((e) => e.toJson()).toList()),
-      );
+      await _updateDailyData(date, {
+        'nutrition': entries.map((e) => e.toJson()).toList(),
+      });
     }
   }
 
-  // Smoking Cessation
+  // ── Smoking ──
+
   Future<DateTime?> getSmokingQuitDate() async {
-    await _ensureInitialized();
-    final dateStr = _prefs.getString(_key('smoking_quit_date'));
-    return dateStr != null ? DateTime.parse(dateStr) : null;
+    final settings = await _getUserSettings();
+    final dateStr = settings['smokingQuitDate'] as String?;
+    return dateStr != null ? DateTime.tryParse(dateStr) : null;
   }
 
   Future<void> setSmokingQuitDate(DateTime date) async {
-    await _ensureInitialized();
-    await _prefs.setString(_key('smoking_quit_date'), date.toIso8601String());
+    await _updateUserSettings({'smokingQuitDate': date.toIso8601String()});
   }
 
   Future<void> clearSmokingQuitDate() async {
+    await _updateUserSettings({'smokingQuitDate': FieldValue.delete()});
     await _ensureInitialized();
-    await _prefs.remove(_key('smoking_quit_date'));
+    final current = await _getUserSettings();
+    current.remove('smokingQuitDate');
+    _prefs.setString('cache_settings', jsonEncode(current));
   }
 
   Future<int> getDailySmokingCount() async {
-    await _ensureInitialized();
-    return _prefs.getInt(_key('daily_smoking_count')) ?? 20;
+    final s = await _getUserSettings();
+    return (s['dailySmokingCount'] as int?) ?? 20;
   }
 
   Future<void> setDailySmokingCount(int count) async {
-    await _ensureInitialized();
-    await _prefs.setInt(_key('daily_smoking_count'), count);
+    await _updateUserSettings({'dailySmokingCount': count});
   }
 
   Future<double> getPackPrice() async {
-    await _ensureInitialized();
-    return _prefs.getDouble(_key('pack_price')) ?? 60.0;
+    final s = await _getUserSettings();
+    return (s['packPrice'] as num?)?.toDouble() ?? 60.0;
   }
 
   Future<void> setPackPrice(double price) async {
-    await _ensureInitialized();
-    await _prefs.setDouble(_key('pack_price'), price);
+    await _updateUserSettings({'packPrice': price});
   }
 
-  // Step goal
+  // ── Goals ──
+
   Future<int> getStepGoal() async {
-    await _ensureInitialized();
-    return _prefs.getInt(_key('step_goal')) ?? 10000;
+    final s = await _getUserSettings();
+    return (s['stepGoal'] as int?) ?? 10000;
   }
 
   Future<void> setStepGoal(int goal) async {
-    await _ensureInitialized();
-    await _prefs.setInt(_key('step_goal'), goal);
+    await _updateUserSettings({'stepGoal': goal});
   }
 
-  // Water goal
   Future<int> getWaterGoal() async {
-    await _ensureInitialized();
-    return _prefs.getInt(_key('water_goal')) ?? 14;
+    final s = await _getUserSettings();
+    return (s['waterGoal'] as int?) ?? 14;
   }
 
   Future<void> setWaterGoal(int goal) async {
-    await _ensureInitialized();
-    await _prefs.setInt(_key('water_goal'), goal);
+    await _updateUserSettings({'waterGoal': goal});
   }
 
-  // Calorie goal
   Future<int> getCalorieGoal() async {
-    await _ensureInitialized();
-    return _prefs.getInt(_key('calorie_goal')) ?? 2000;
+    final s = await _getUserSettings();
+    return (s['calorieGoal'] as int?) ?? 2000;
   }
 
   Future<void> setCalorieGoal(int goal) async {
-    await _ensureInitialized();
-    await _prefs.setInt(_key('calorie_goal'), goal);
+    await _updateUserSettings({'calorieGoal': goal});
   }
 
-  // Target weight
   Future<double> getTargetWeight() async {
-    await _ensureInitialized();
-    return _prefs.getDouble(_key('target_weight')) ?? 0.0;
+    final s = await _getUserSettings();
+    return (s['targetWeight'] as num?)?.toDouble() ?? 0.0;
   }
 
   Future<void> setTargetWeight(double weight) async {
-    await _ensureInitialized();
-    await _prefs.setDouble(_key('target_weight'), weight);
+    await _updateUserSettings({'targetWeight': weight});
   }
 
-  // Reminder settings
+  // ── Reminder settings ──
+
   Future<int> getReminderInterval(String type) async {
-    await _ensureInitialized();
-    return _prefs.getInt(_key('reminder_${type}_minutes')) ??
+    final s = await _getUserSettings();
+    return (s['reminder_${type}_minutes'] as int?) ??
         (type == 'water' ? 120 : type == 'movement' ? 60 : 480);
   }
 
   Future<void> setReminderInterval(String type, int minutes) async {
-    await _ensureInitialized();
-    await _prefs.setInt(_key('reminder_${type}_minutes'), minutes);
+    await _updateUserSettings({'reminder_${type}_minutes': minutes});
   }
 
   Future<bool> getReminderEnabled(String type) async {
-    await _ensureInitialized();
-    return _prefs.getBool(_key('reminder_${type}_enabled')) ?? true;
+    final s = await _getUserSettings();
+    return (s['reminder_${type}_enabled'] as bool?) ?? true;
   }
 
   Future<void> setReminderEnabled(String type, bool enabled) async {
-    await _ensureInitialized();
-    await _prefs.setBool(_key('reminder_${type}_enabled'), enabled);
+    await _updateUserSettings({'reminder_${type}_enabled': enabled});
   }
 
   Future<String> getReminderStartTime(String type) async {
-    await _ensureInitialized();
-    return _prefs.getString(_key('reminder_${type}_start')) ?? '08:00';
+    final s = await _getUserSettings();
+    return (s['reminder_${type}_start'] as String?) ?? '08:00';
   }
 
   Future<void> setReminderStartTime(String type, String time) async {
-    await _ensureInitialized();
-    await _prefs.setString(_key('reminder_${type}_start'), time);
+    await _updateUserSettings({'reminder_${type}_start': time});
   }
 
   Future<String> getReminderEndTime(String type) async {
-    await _ensureInitialized();
-    return _prefs.getString(_key('reminder_${type}_end')) ?? '22:00';
+    final s = await _getUserSettings();
+    return (s['reminder_${type}_end'] as String?) ?? '22:00';
   }
 
   Future<void> setReminderEndTime(String type, String time) async {
-    await _ensureInitialized();
-    await _prefs.setString(_key('reminder_${type}_end'), time);
+    await _updateUserSettings({'reminder_${type}_end': time});
   }
 
-  // Health Connect preference
+  // ── Health Connect ──
+
   Future<bool> getHealthConnectEnabled() async {
-    await _ensureInitialized();
-    return _prefs.getBool(_key('health_connect_enabled')) ?? false;
+    final s = await _getUserSettings();
+    return (s['healthConnectEnabled'] as bool?) ?? false;
   }
 
   Future<void> setHealthConnectEnabled(bool enabled) async {
-    await _ensureInitialized();
-    await _prefs.setBool(_key('health_connect_enabled'), enabled);
+    await _updateUserSettings({'healthConnectEnabled': enabled});
   }
 
-  // Mood tracking
+  // ── Mood ──
+
   Future<int?> getMood(DateTime date) async {
-    await _ensureInitialized();
-    final val = _prefs.getInt(_key('mood_${_dateKey(date)}'));
-    return val;
+    final data = await _getDailyData(date);
+    return data['mood'] as int?;
   }
 
   Future<void> setMood(DateTime date, int mood) async {
-    await _ensureInitialized();
-    await _prefs.setInt(_key('mood_${_dateKey(date)}'), mood);
+    await _updateDailyData(date, {'mood': mood});
   }
 
   Future<Map<String, int>> getMoodHistory(int days) async {
-    await _ensureInitialized();
     final map = <String, int>{};
     for (int i = 0; i < days; i++) {
       final date = DateTime.now().subtract(Duration(days: i));
-      final mood = _prefs.getInt(_key('mood_${_dateKey(date)}'));
+      final mood = await getMood(date);
       if (mood != null) map[_dateKey(date)] = mood;
     }
     return map;
   }
 
-  // Risk Checklist
+  // ── Risk Checklist ──
+
   Future<Map<String, dynamic>> getRiskChecklist() async {
-    await _ensureInitialized();
-    final data = _prefs.getString(_key('risk_checklist'));
-    if (data == null) {
-      return {
-        'familyHistory': false,
-        'smoking': false,
-        'hypertension': false,
-        'hyperlipidemia': false,
-        'diabetes': false,
-        'inactivity': false,
-        'height': 0.0,
-        'weight': 0.0,
-      };
-    }
-    return Map<String, dynamic>.from(jsonDecode(data));
+    final s = await _getUserSettings();
+    final data = s['riskChecklist'] as Map<String, dynamic>?;
+    if (data != null) return Map<String, dynamic>.from(data);
+    return {
+      'familyHistory': false,
+      'smoking': false,
+      'hypertension': false,
+      'hyperlipidemia': false,
+      'diabetes': false,
+      'inactivity': false,
+      'height': 0.0,
+      'weight': 0.0,
+    };
   }
 
   Future<void> saveRiskChecklist(Map<String, dynamic> data) async {
-    await _ensureInitialized();
-    await _prefs.setString(_key('risk_checklist'), jsonEncode(data));
+    await _updateUserSettings({'riskChecklist': data});
   }
 
-  // Steps history (last 7 days)
+  // ── Steps history ──
+
   Future<Map<String, int>> getStepsHistory(int days) async {
-    await _ensureInitialized();
     final map = <String, int>{};
     for (int i = 0; i < days; i++) {
       final date = DateTime.now().subtract(Duration(days: i));

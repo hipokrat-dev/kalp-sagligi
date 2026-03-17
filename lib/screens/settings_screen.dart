@@ -204,7 +204,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
 
     if (confirm == true && mounted) {
-      AuthService.instance.logout();
+      await AuthService.instance.logout();
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (_) => const LoginScreen()),
@@ -249,7 +249,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          'Kalp Sağlığı Kullanıcısı',
+                          AuthService.instance.currentEmail ?? 'Kalp Sağlığı Kullanıcısı',
                           style: TextStyle(color: AppTheme.textLight, fontSize: 13),
                         ),
                       ],

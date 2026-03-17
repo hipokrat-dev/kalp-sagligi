@@ -10,31 +10,21 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  final _usernameController = TextEditingController();
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmController = TextEditingController();
-  final _securityAnswerController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _obscurePassword = true;
   bool _obscureConfirm = true;
   bool _loading = false;
 
-  String _selectedQuestion = 'İlk evcil hayvanınızın adı nedir?';
-  final _securityQuestions = [
-    'İlk evcil hayvanınızın adı nedir?',
-    'Annenizin kızlık soyadı nedir?',
-    'İlk okulunuzun adı nedir?',
-    'En sevdiğiniz yemek nedir?',
-    'Doğduğunuz şehir neresidir?',
-    'En yakın arkadaşınızın adı nedir?',
-  ];
-
   @override
   void dispose() {
-    _usernameController.dispose();
+    _nameController.dispose();
+    _emailController.dispose();
     _passwordController.dispose();
     _confirmController.dispose();
-    _securityAnswerController.dispose();
     super.dispose();
   }
 
@@ -44,10 +34,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
     setState(() => _loading = true);
 
     final result = await AuthService.instance.register(
-      username: _usernameController.text,
+      displayName: _nameController.text,
+      email: _emailController.text,
       password: _passwordController.text,
-      securityQuestion: _selectedQuestion,
-      securityAnswer: _securityAnswerController.text,
     );
 
     setState(() => _loading = false);
@@ -56,18 +45,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     if (result.success) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Kayıt başarılı! Hoş geldiniz.'),
-          backgroundColor: Colors.green,
-        ),
+        const SnackBar(content: Text('Kayıt başarılı! Hoş geldiniz.'), backgroundColor: Colors.green),
       );
       Navigator.pop(context, true);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(result.message),
-          backgroundColor: AppTheme.primaryRed,
-        ),
+        SnackBar(content: Text(result.message), backgroundColor: AppTheme.primaryRed),
       );
     }
   }
@@ -83,36 +66,44 @@ class _RegisterScreenState extends State<RegisterScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Hesap Oluştur',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              ),
+              const Text('Hesap Oluştur', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
               const SizedBox(height: 4),
-              Text(
-                'Sağlık verilerinizi güvenle takip edin',
-                style: TextStyle(color: AppTheme.textLight),
-              ),
+              Text('Sağlık verilerinizi güvenle takip edin', style: TextStyle(color: AppTheme.textLight)),
               const SizedBox(height: 24),
 
-              // Username
+              // Ad Soyad
               TextFormField(
-                controller: _usernameController,
+                controller: _nameController,
                 textInputAction: TextInputAction.next,
                 decoration: const InputDecoration(
-                  labelText: 'Kullanıcı Adı',
+                  labelText: 'Ad Soyad',
                   prefixIcon: Icon(Icons.person_outline),
-                  hintText: 'En az 3 karakter',
                 ),
                 validator: (v) {
-                  if (v == null || v.trim().length < 3) {
-                    return 'Kullanıcı adı en az 3 karakter olmalı';
-                  }
+                  if (v == null || v.trim().length < 2) return 'Ad en az 2 karakter olmalı';
                   return null;
                 },
               ),
               const SizedBox(height: 16),
 
-              // Password
+              // E-posta
+              TextFormField(
+                controller: _emailController,
+                keyboardType: TextInputType.emailAddress,
+                textInputAction: TextInputAction.next,
+                decoration: const InputDecoration(
+                  labelText: 'E-posta',
+                  prefixIcon: Icon(Icons.email_outlined),
+                ),
+                validator: (v) {
+                  if (v == null || v.trim().isEmpty) return 'E-posta gerekli';
+                  if (!v.contains('@')) return 'Geçerli bir e-posta girin';
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+
+              // Şifre
               TextFormField(
                 controller: _passwordController,
                 obscureText: _obscurePassword,
@@ -120,24 +111,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 decoration: InputDecoration(
                   labelText: 'Şifre',
                   prefixIcon: const Icon(Icons.lock_outline),
-                  hintText: 'En az 4 karakter',
+                  hintText: 'En az 6 karakter',
                   suffixIcon: IconButton(
                     icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
                     onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                   ),
                 ),
                 validator: (v) {
-                  if (v == null || v.length < 4) return 'Şifre en az 4 karakter olmalı';
+                  if (v == null || v.length < 6) return 'Şifre en az 6 karakter olmalı';
                   return null;
                 },
               ),
               const SizedBox(height: 16),
 
-              // Confirm Password
+              // Şifre Tekrar
               TextFormField(
                 controller: _confirmController,
                 obscureText: _obscureConfirm,
-                textInputAction: TextInputAction.next,
+                textInputAction: TextInputAction.done,
                 decoration: InputDecoration(
                   labelText: 'Şifre Tekrar',
                   prefixIcon: const Icon(Icons.lock_outline),
@@ -151,78 +142,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   return null;
                 },
               ),
-              const SizedBox(height: 24),
-
-              // Security Question Section
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.orange.withValues(alpha: 0.06),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.orange.withValues(alpha: 0.2)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Row(
-                      children: [
-                        Icon(Icons.security, color: Colors.orange, size: 20),
-                        SizedBox(width: 8),
-                        Text(
-                          'Güvenlik Sorusu',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Şifrenizi unuttuğunuzda bu soru ile sıfırlayabilirsiniz',
-                      style: TextStyle(fontSize: 12, color: AppTheme.textLight),
-                    ),
-                    const SizedBox(height: 12),
-                    DropdownButtonFormField<String>(
-                      initialValue: _selectedQuestion,
-                      decoration: const InputDecoration(
-                        labelText: 'Güvenlik Sorusu',
-                        border: OutlineInputBorder(),
-                      ),
-                      isExpanded: true,
-                      items: _securityQuestions.map((q) {
-                        return DropdownMenuItem(value: q, child: Text(q, style: const TextStyle(fontSize: 13)));
-                      }).toList(),
-                      onChanged: (v) => setState(() => _selectedQuestion = v!),
-                    ),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: _securityAnswerController,
-                      textInputAction: TextInputAction.done,
-                      decoration: const InputDecoration(
-                        labelText: 'Cevabınız',
-                        prefixIcon: Icon(Icons.question_answer_outlined),
-                        border: OutlineInputBorder(),
-                      ),
-                      validator: (v) {
-                        if (v == null || v.trim().isEmpty) return 'Güvenlik cevabı gerekli';
-                        return null;
-                      },
-                    ),
-                  ],
-                ),
-              ),
               const SizedBox(height: 32),
 
-              // Register Button
               SizedBox(
-                width: double.infinity,
-                height: 50,
+                width: double.infinity, height: 50,
                 child: ElevatedButton(
                   onPressed: _loading ? null : _register,
                   child: _loading
-                      ? const SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                        )
+                      ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
                       : const Text('Kayıt Ol', style: TextStyle(fontSize: 16)),
                 ),
               ),

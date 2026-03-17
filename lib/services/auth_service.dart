@@ -1,229 +1,154 @@
-import 'dart:convert';
-import 'package:crypto/crypto.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AuthService {
   static final AuthService instance = AuthService._();
   AuthService._();
 
-  late SharedPreferences _prefs;
-  bool _initialized = false;
-  String? _currentUserId;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  String? get currentUserId => _currentUserId;
-  String? get currentUsername => _currentUserId != null
-      ? _prefs.getString('user_${_currentUserId}_username')
-      : null;
+  User? get currentUser => _auth.currentUser;
+  String? get currentUserId => _auth.currentUser?.uid;
+  String? get currentUsername => _auth.currentUser?.displayName;
+  String? get currentEmail => _auth.currentUser?.email;
 
   Future<void> init() async {
-    if (!_initialized) {
-      _prefs = await SharedPreferences.getInstance();
-      _initialized = true;
-    }
-  }
-
-  String _hashPassword(String password, String salt) {
-    final bytes = utf8.encode('$salt:$password');
-    final hash1 = sha256.convert(bytes);
-    final hash2 = sha256.convert(utf8.encode('$hash1:$salt'));
-    return hash2.toString();
-  }
-
-  String _generateUserId(String username) {
-    return sha256.convert(utf8.encode(username.toLowerCase().trim())).toString().substring(0, 16);
-  }
-
-  List<String> _getUserIds() {
-    return _prefs.getStringList('registered_user_ids') ?? [];
-  }
-
-  Future<void> _saveUserIds(List<String> ids) async {
-    await _prefs.setStringList('registered_user_ids', ids);
-  }
-
-  Future<({bool success, String message})> register({
-    required String username,
-    required String password,
-    required String securityQuestion,
-    required String securityAnswer,
-  }) async {
-    await init();
-
-    final trimmedUsername = username.trim();
-    if (trimmedUsername.length < 3) {
-      return (success: false, message: 'Kullanıcı adı en az 3 karakter olmalı');
-    }
-    if (password.length < 4) {
-      return (success: false, message: 'Şifre en az 4 karakter olmalı');
-    }
-    if (securityAnswer.trim().isEmpty) {
-      return (success: false, message: 'Güvenlik sorusu cevabı boş olamaz');
-    }
-
-    final userId = _generateUserId(trimmedUsername);
-
-    // Check if user exists
-    final userIds = _getUserIds();
-    if (userIds.contains(userId)) {
-      return (success: false, message: 'Bu kullanıcı adı zaten kayıtlı');
-    }
-
-    // Save user
-    final salt = DateTime.now().microsecondsSinceEpoch.toString();
-    final hashedPassword = _hashPassword(password, salt);
-    final hashedAnswer = _hashPassword(securityAnswer.toLowerCase().trim(), salt);
-
-    await _prefs.setString('user_${userId}_username', trimmedUsername);
-    await _prefs.setString('user_${userId}_password', hashedPassword);
-    await _prefs.setString('user_${userId}_salt', salt);
-    await _prefs.setString('user_${userId}_security_question', securityQuestion);
-    await _prefs.setString('user_${userId}_security_answer', hashedAnswer);
-
-    userIds.add(userId);
-    await _saveUserIds(userIds);
-
-    _currentUserId = userId;
-    await _prefs.setString('last_logged_in_user', userId);
-
-    return (success: true, message: 'Kayıt başarılı');
-  }
-
-  Future<({bool success, String message})> login({
-    required String username,
-    required String password,
-  }) async {
-    await init();
-
-    final userId = _generateUserId(username.trim());
-    final userIds = _getUserIds();
-
-    if (!userIds.contains(userId)) {
-      return (success: false, message: 'Kullanıcı bulunamadı');
-    }
-
-    final salt = _prefs.getString('user_${userId}_salt') ?? '';
-    final storedHash = _prefs.getString('user_${userId}_password') ?? '';
-    final inputHash = _hashPassword(password, salt);
-
-    if (storedHash != inputHash) {
-      return (success: false, message: 'Şifre hatalı');
-    }
-
-    _currentUserId = userId;
-    await _prefs.setString('last_logged_in_user', userId);
-
-    return (success: true, message: 'Giriş başarılı');
-  }
-
-  void logout() {
-    _currentUserId = null;
-    _prefs.remove('last_logged_in_user');
+    // Firebase Auth handles initialization via Firebase.initializeApp()
   }
 
   Future<bool> tryAutoLogin() async {
-    await init();
-    final lastUser = _prefs.getString('last_logged_in_user');
-    if (lastUser != null && _getUserIds().contains(lastUser)) {
-      _currentUserId = lastUser;
-      return true;
-    }
-    return false;
+    return _auth.currentUser != null;
   }
 
-  Future<String?> getSecurityQuestion(String username) async {
-    await init();
-    final userId = _generateUserId(username.trim());
-    if (!_getUserIds().contains(userId)) return null;
-    return _prefs.getString('user_${userId}_security_question');
+  Future<({bool success, String message})> register({
+    required String displayName,
+    required String email,
+    required String password,
+  }) async {
+    try {
+      final trimmedName = displayName.trim();
+      if (trimmedName.length < 2) {
+        return (success: false, message: 'Ad en az 2 karakter olmalı');
+      }
+
+      final credential = await _auth.createUserWithEmailAndPassword(
+        email: email.trim(),
+        password: password,
+      );
+
+      await credential.user?.updateDisplayName(trimmedName);
+      await credential.user?.reload();
+
+      // Create user profile in Firestore
+      await _db.collection('users').doc(credential.user!.uid).set({
+        'displayName': trimmedName,
+        'email': email.trim(),
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      return (success: true, message: 'Kayıt başarılı');
+    } on FirebaseAuthException catch (e) {
+      return (success: false, message: _translateError(e.code));
+    } catch (e) {
+      return (success: false, message: 'Bir hata oluştu: $e');
+    }
+  }
+
+  Future<({bool success, String message})> login({
+    required String email,
+    required String password,
+  }) async {
+    try {
+      await _auth.signInWithEmailAndPassword(
+        email: email.trim(),
+        password: password,
+      );
+      return (success: true, message: 'Giriş başarılı');
+    } on FirebaseAuthException catch (e) {
+      return (success: false, message: _translateError(e.code));
+    } catch (e) {
+      return (success: false, message: 'Bir hata oluştu: $e');
+    }
+  }
+
+  Future<void> logout() async {
+    await _auth.signOut();
   }
 
   Future<({bool success, String message})> resetPassword({
-    required String username,
-    required String securityAnswer,
-    required String newPassword,
+    required String email,
   }) async {
-    await init();
-
-    final userId = _generateUserId(username.trim());
-    if (!_getUserIds().contains(userId)) {
-      return (success: false, message: 'Kullanıcı bulunamadı');
+    try {
+      await _auth.sendPasswordResetEmail(email: email.trim());
+      return (success: true, message: 'Şifre sıfırlama bağlantısı e-postanıza gönderildi');
+    } on FirebaseAuthException catch (e) {
+      return (success: false, message: _translateError(e.code));
+    } catch (e) {
+      return (success: false, message: 'Bir hata oluştu: $e');
     }
-
-    if (newPassword.length < 4) {
-      return (success: false, message: 'Yeni şifre en az 4 karakter olmalı');
-    }
-
-    final salt = _prefs.getString('user_${userId}_salt') ?? '';
-    final storedAnswer = _prefs.getString('user_${userId}_security_answer') ?? '';
-    final inputAnswer = _hashPassword(securityAnswer.toLowerCase().trim(), salt);
-
-    if (storedAnswer != inputAnswer) {
-      return (success: false, message: 'Güvenlik sorusu cevabı hatalı');
-    }
-
-    // Update password with new salt
-    final newSalt = DateTime.now().microsecondsSinceEpoch.toString();
-    final newHash = _hashPassword(newPassword, newSalt);
-    final newAnswerHash = _hashPassword(securityAnswer.toLowerCase().trim(), newSalt);
-
-    await _prefs.setString('user_${userId}_password', newHash);
-    await _prefs.setString('user_${userId}_salt', newSalt);
-    await _prefs.setString('user_${userId}_security_answer', newAnswerHash);
-
-    return (success: true, message: 'Şifre başarıyla sıfırlandı');
   }
 
-  Future<({bool success, String message})> changeUsername(String newUsername) async {
-    await init();
-    if (_currentUserId == null) {
-      return (success: false, message: 'Giriş yapılmamış');
-    }
+  Future<({bool success, String message})> changeUsername(String newName) async {
+    try {
+      final trimmed = newName.trim();
+      if (trimmed.length < 2) {
+        return (success: false, message: 'Ad en az 2 karakter olmalı');
+      }
 
-    final trimmed = newUsername.trim();
-    if (trimmed.length < 3) {
-      return (success: false, message: 'Kullanıcı adı en az 3 karakter olmalı');
-    }
+      await currentUser?.updateDisplayName(trimmed);
+      await currentUser?.reload();
 
-    await _prefs.setString('user_${_currentUserId}_username', trimmed);
-    return (success: true, message: 'Kullanıcı adı güncellendi');
+      // Update in Firestore
+      if (currentUserId != null) {
+        await _db.collection('users').doc(currentUserId).update({
+          'displayName': trimmed,
+        });
+      }
+
+      return (success: true, message: 'Kullanıcı adı güncellendi');
+    } catch (e) {
+      return (success: false, message: 'Bir hata oluştu: $e');
+    }
   }
 
   Future<({bool success, String message})> changePassword({
     required String currentPassword,
     required String newPassword,
   }) async {
-    await init();
-    if (_currentUserId == null) {
-      return (success: false, message: 'Giriş yapılmamış');
+    try {
+      if (newPassword.length < 6) {
+        return (success: false, message: 'Yeni şifre en az 6 karakter olmalı');
+      }
+
+      // Re-authenticate
+      final credential = EmailAuthProvider.credential(
+        email: currentEmail!,
+        password: currentPassword,
+      );
+      await currentUser!.reauthenticateWithCredential(credential);
+      await currentUser!.updatePassword(newPassword);
+
+      return (success: true, message: 'Şifre başarıyla değiştirildi');
+    } on FirebaseAuthException catch (e) {
+      return (success: false, message: _translateError(e.code));
+    } catch (e) {
+      return (success: false, message: 'Bir hata oluştu: $e');
     }
+  }
 
-    if (newPassword.length < 4) {
-      return (success: false, message: 'Yeni şifre en az 4 karakter olmalı');
-    }
-
-    final salt = _prefs.getString('user_${_currentUserId}_salt') ?? '';
-    final storedHash = _prefs.getString('user_${_currentUserId}_password') ?? '';
-    final inputHash = _hashPassword(currentPassword, salt);
-
-    if (storedHash != inputHash) {
-      return (success: false, message: 'Mevcut şifre hatalı');
-    }
-
-    final newSalt = DateTime.now().microsecondsSinceEpoch.toString();
-    final newHash = _hashPassword(newPassword, newSalt);
-
-    // Re-hash security answer with new salt
-    // We need the original answer, but we can't reverse the hash.
-    // So we keep the old salt for security answer, or we require re-entry.
-    // For simplicity, update salt and password only.
-    await _prefs.setString('user_${_currentUserId}_password', newHash);
-    await _prefs.setString('user_${_currentUserId}_salt', newSalt);
-
-    // Re-hash security answer with new salt - need original answer
-    // Since we can't reverse hash, keep security answer on old salt
-    // Store a separate salt for security answer
-    await _prefs.setString('user_${_currentUserId}_password_salt', newSalt);
-
-    return (success: true, message: 'Şifre başarıyla değiştirildi');
+  String _translateError(String code) {
+    return switch (code) {
+      'email-already-in-use' => 'Bu e-posta adresi zaten kayıtlı',
+      'invalid-email' => 'Geçersiz e-posta adresi',
+      'weak-password' => 'Şifre çok zayıf, en az 6 karakter olmalı',
+      'user-not-found' => 'Bu e-posta ile kayıtlı kullanıcı bulunamadı',
+      'wrong-password' => 'Şifre hatalı',
+      'invalid-credential' => 'E-posta veya şifre hatalı',
+      'too-many-requests' => 'Çok fazla deneme yaptınız, lütfen bekleyin',
+      'user-disabled' => 'Bu hesap devre dışı bırakılmış',
+      'network-request-failed' => 'İnternet bağlantısı yok',
+      _ => 'Bir hata oluştu ($code)',
+    };
   }
 }

@@ -10,58 +10,15 @@ class ForgotPasswordScreen extends StatefulWidget {
 }
 
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
-  final _usernameController = TextEditingController();
-  final _answerController = TextEditingController();
-  final _newPasswordController = TextEditingController();
-  final _confirmController = TextEditingController();
+  final _emailController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
-
-  bool _obscureNew = true;
-  bool _obscureConfirm = true;
   bool _loading = false;
-  String? _securityQuestion;
-  bool _userFound = false;
+  bool _emailSent = false;
 
   @override
   void dispose() {
-    _usernameController.dispose();
-    _answerController.dispose();
-    _newPasswordController.dispose();
-    _confirmController.dispose();
+    _emailController.dispose();
     super.dispose();
-  }
-
-  void _findUser() async {
-    final username = _usernameController.text.trim();
-    if (username.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Kullanıcı adı girin'),
-          backgroundColor: AppTheme.primaryRed,
-        ),
-      );
-      return;
-    }
-
-    setState(() => _loading = true);
-    final question = await AuthService.instance.getSecurityQuestion(username);
-    setState(() => _loading = false);
-
-    if (!mounted) return;
-
-    if (question != null) {
-      setState(() {
-        _securityQuestion = question;
-        _userFound = true;
-      });
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Kullanıcı bulunamadı'),
-          backgroundColor: AppTheme.primaryRed,
-        ),
-      );
-    }
   }
 
   void _resetPassword() async {
@@ -70,9 +27,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     setState(() => _loading = true);
 
     final result = await AuthService.instance.resetPassword(
-      username: _usernameController.text,
-      securityAnswer: _answerController.text,
-      newPassword: _newPasswordController.text,
+      email: _emailController.text,
     );
 
     setState(() => _loading = false);
@@ -80,19 +35,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     if (!mounted) return;
 
     if (result.success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Şifre başarıyla sıfırlandı! Giriş yapabilirsiniz.'),
-          backgroundColor: Colors.green,
-        ),
-      );
-      Navigator.pop(context);
+      setState(() => _emailSent = true);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(result.message),
-          backgroundColor: AppTheme.primaryRed,
-        ),
+        SnackBar(content: Text(result.message), backgroundColor: AppTheme.primaryRed),
       );
     }
   }
@@ -103,155 +49,93 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       appBar: AppBar(title: const Text('Şifre Sıfırla')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Icon(Icons.lock_reset, size: 48, color: AppTheme.primaryRed),
-              const SizedBox(height: 12),
-              const Text(
-                'Şifrenizi Sıfırlayın',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Güvenlik sorunuzu cevaplayarak yeni şifre belirleyin',
-                style: TextStyle(color: AppTheme.textLight),
-              ),
-              const SizedBox(height: 24),
+        child: _emailSent ? _buildSuccessView() : _buildFormView(),
+      ),
+    );
+  }
 
-              // Username
-              TextFormField(
-                controller: _usernameController,
-                enabled: !_userFound,
-                decoration: InputDecoration(
-                  labelText: 'Kullanıcı Adı',
-                  prefixIcon: const Icon(Icons.person_outline),
-                  suffixIcon: !_userFound
-                      ? null
-                      : const Icon(Icons.check_circle, color: Colors.green),
-                ),
-              ),
-              const SizedBox(height: 12),
-
-              if (!_userFound) ...[
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _loading ? null : _findUser,
-                    child: _loading
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                          )
-                        : const Text('Kullanıcıyı Bul'),
-                  ),
-                ),
-              ],
-
-              if (_userFound) ...[
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: Colors.orange.withValues(alpha: 0.06),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.orange.withValues(alpha: 0.2)),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Row(
-                        children: [
-                          Icon(Icons.security, color: Colors.orange, size: 18),
-                          SizedBox(width: 6),
-                          Text('Güvenlik Sorusu',
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        _securityQuestion!,
-                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                TextFormField(
-                  controller: _answerController,
-                  textInputAction: TextInputAction.next,
-                  decoration: const InputDecoration(
-                    labelText: 'Cevabınız',
-                    prefixIcon: Icon(Icons.question_answer_outlined),
-                  ),
-                  validator: (v) {
-                    if (v == null || v.trim().isEmpty) return 'Cevap gerekli';
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-
-                TextFormField(
-                  controller: _newPasswordController,
-                  obscureText: _obscureNew,
-                  textInputAction: TextInputAction.next,
-                  decoration: InputDecoration(
-                    labelText: 'Yeni Şifre',
-                    prefixIcon: const Icon(Icons.lock_outline),
-                    hintText: 'En az 4 karakter',
-                    suffixIcon: IconButton(
-                      icon: Icon(_obscureNew ? Icons.visibility_off : Icons.visibility),
-                      onPressed: () => setState(() => _obscureNew = !_obscureNew),
-                    ),
-                  ),
-                  validator: (v) {
-                    if (v == null || v.length < 4) return 'Şifre en az 4 karakter olmalı';
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-
-                TextFormField(
-                  controller: _confirmController,
-                  obscureText: _obscureConfirm,
-                  textInputAction: TextInputAction.done,
-                  decoration: InputDecoration(
-                    labelText: 'Yeni Şifre Tekrar',
-                    prefixIcon: const Icon(Icons.lock_outline),
-                    suffixIcon: IconButton(
-                      icon: Icon(_obscureConfirm ? Icons.visibility_off : Icons.visibility),
-                      onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm),
-                    ),
-                  ),
-                  validator: (v) {
-                    if (v != _newPasswordController.text) return 'Şifreler eşleşmiyor';
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 24),
-
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton(
-                    onPressed: _loading ? null : _resetPassword,
-                    child: _loading
-                        ? const SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                          )
-                        : const Text('Şifreyi Sıfırla', style: TextStyle(fontSize: 16)),
-                  ),
-                ),
-              ],
-            ],
+  Widget _buildSuccessView() {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const SizedBox(height: 40),
+        Container(
+          width: 80, height: 80,
+          decoration: BoxDecoration(
+            color: Colors.green.withValues(alpha: 0.1),
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(Icons.mark_email_read_rounded, size: 40, color: Colors.green),
+        ),
+        const SizedBox(height: 24),
+        const Text('E-posta Gönderildi!',
+            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 12),
+        Text(
+          '${_emailController.text} adresine şifre sıfırlama bağlantısı gönderildi.\n\n'
+          'E-postanızı kontrol edin ve bağlantıya tıklayarak yeni şifrenizi belirleyin.',
+          textAlign: TextAlign.center,
+          style: TextStyle(color: AppTheme.textLight, fontSize: 15, height: 1.5),
+        ),
+        const SizedBox(height: 32),
+        SizedBox(
+          width: double.infinity, height: 50,
+          child: ElevatedButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Giriş Sayfasına Dön', style: TextStyle(fontSize: 16)),
           ),
         ),
+        const SizedBox(height: 12),
+        TextButton(
+          onPressed: () => setState(() => _emailSent = false),
+          child: const Text('Farklı e-posta dene'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFormView() {
+    return Form(
+      key: _formKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.lock_reset, size: 48, color: AppTheme.primaryRed),
+          const SizedBox(height: 12),
+          const Text('Şifrenizi Sıfırlayın',
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 4),
+          Text('E-posta adresinize şifre sıfırlama bağlantısı göndereceğiz',
+              style: TextStyle(color: AppTheme.textLight)),
+          const SizedBox(height: 24),
+
+          TextFormField(
+            controller: _emailController,
+            keyboardType: TextInputType.emailAddress,
+            textInputAction: TextInputAction.done,
+            onFieldSubmitted: (_) => _resetPassword(),
+            decoration: const InputDecoration(
+              labelText: 'E-posta',
+              prefixIcon: Icon(Icons.email_outlined),
+            ),
+            validator: (v) {
+              if (v == null || v.trim().isEmpty) return 'E-posta gerekli';
+              if (!v.contains('@')) return 'Geçerli bir e-posta girin';
+              return null;
+            },
+          ),
+          const SizedBox(height: 24),
+
+          SizedBox(
+            width: double.infinity, height: 50,
+            child: ElevatedButton(
+              onPressed: _loading ? null : _resetPassword,
+              child: _loading
+                  ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                  : const Text('Sıfırlama Bağlantısı Gönder', style: TextStyle(fontSize: 16)),
+            ),
+          ),
+        ],
       ),
     );
   }
