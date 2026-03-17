@@ -410,23 +410,13 @@ class _GridCardState extends State<_GridCard> with SingleTickerProviderStateMixi
             Text(widget.title,
                 style: GoogleFonts.inter(color: Colors.white.withValues(alpha: 0.8), fontSize: 12, fontWeight: FontWeight.w600)),
             const SizedBox(height: 2),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Flexible(
-                  child: Text(widget.value,
-                      style: GoogleFonts.inter(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w800),
-                      overflow: TextOverflow.ellipsis),
-                ),
-                const SizedBox(width: 4),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 3),
-                  child: Text(widget.subtitle,
-                      style: GoogleFonts.inter(color: Colors.white.withValues(alpha: 0.7), fontSize: 11)),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
+            Text(widget.value,
+                style: GoogleFonts.inter(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w800),
+                overflow: TextOverflow.ellipsis, maxLines: 1),
+            Text(widget.subtitle,
+                style: GoogleFonts.inter(color: Colors.white.withValues(alpha: 0.7), fontSize: 11),
+                overflow: TextOverflow.ellipsis, maxLines: 1),
+            const SizedBox(height: 8),
             AnimatedBuilder(
               animation: _progressAnim,
               builder: (_, child) => ClipRRect(
@@ -514,24 +504,17 @@ class _BmiWeightCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 2),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(bmi.toStringAsFixed(1),
-                      style: GoogleFonts.inter(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w800)),
-                  const SizedBox(width: 4),
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 3),
-                    child: Text(
-                      hasTarget
-                          ? (toGo > 0 ? '-${toGo.toStringAsFixed(1)} kg' : 'Hedefe ulaştın!')
-                          : '${weight.toStringAsFixed(0)} kg',
-                      style: GoogleFonts.inter(color: Colors.white.withValues(alpha: 0.7), fontSize: 11),
-                    ),
-                  ),
-                ],
+              Text(bmi.toStringAsFixed(1),
+                  style: GoogleFonts.inter(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w800),
+                  overflow: TextOverflow.ellipsis, maxLines: 1),
+              Text(
+                hasTarget
+                    ? (toGo > 0 ? '-${toGo.toStringAsFixed(1)} kg kaldı' : 'Hedefe ulaştın!')
+                    : '${weight.toStringAsFixed(0)} kg',
+                style: GoogleFonts.inter(color: Colors.white.withValues(alpha: 0.7), fontSize: 11),
+                overflow: TextOverflow.ellipsis, maxLines: 1,
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
               // Progress bar
               ClipRRect(
                 borderRadius: BorderRadius.circular(4),
@@ -661,43 +644,46 @@ class _MoodCardState extends State<_MoodCard> with SingleTickerProviderStateMixi
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: List.generate(5, (i) {
                     final isSelected = widget.todayMood == i;
+                    final moodColor = _moods[i]['color'] as Color;
                     return GestureDetector(
                       onTap: () => widget.onMoodSelected(i),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 250),
-                        curve: Curves.easeOutBack,
-                        width: isSelected ? 56 : 48,
-                        height: isSelected ? 56 : 48,
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? (_moods[i]['color'] as Color).withValues(alpha: 0.15)
-                              : const Color(0xFFF5F5F8),
-                          borderRadius: BorderRadius.circular(16),
-                          border: isSelected
-                              ? Border.all(color: (_moods[i]['color'] as Color).withValues(alpha: 0.4), width: 2)
-                              : null,
-                          boxShadow: isSelected
-                              ? [BoxShadow(color: (_moods[i]['color'] as Color).withValues(alpha: 0.2), blurRadius: 8, offset: const Offset(0, 3))]
-                              : null,
-                        ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              _moods[i]['emoji'] as String,
-                              style: TextStyle(fontSize: isSelected ? 22 : 20),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          AnimatedContainer(
+                            duration: const Duration(milliseconds: 250),
+                            curve: Curves.easeOut,
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? moodColor.withValues(alpha: 0.15)
+                                  : const Color(0xFFF5F5F8),
+                              borderRadius: BorderRadius.circular(14),
+                              border: isSelected
+                                  ? Border.all(color: moodColor.withValues(alpha: 0.5), width: 2)
+                                  : null,
+                              boxShadow: isSelected
+                                  ? [BoxShadow(color: moodColor.withValues(alpha: 0.2), blurRadius: 8, offset: const Offset(0, 3))]
+                                  : null,
                             ),
-                            if (isSelected)
-                              Text(
-                                _moods[i]['label'] as String,
-                                style: GoogleFonts.inter(
-                                  fontSize: 8,
-                                  fontWeight: FontWeight.w700,
-                                  color: _moods[i]['color'] as Color,
-                                ),
+                            child: Center(
+                              child: Text(
+                                _moods[i]['emoji'] as String,
+                                style: const TextStyle(fontSize: 22),
                               ),
-                          ],
-                        ),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            _moods[i]['label'] as String,
+                            style: GoogleFonts.inter(
+                              fontSize: 10,
+                              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                              color: isSelected ? moodColor : AppTheme.textLight,
+                            ),
+                          ),
+                        ],
                       ),
                     );
                   }),
