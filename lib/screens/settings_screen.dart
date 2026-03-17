@@ -8,6 +8,8 @@ import 'login_screen.dart';
 import 'reminder_settings_screen.dart';
 import 'risk_screen.dart';
 import 'blood_pressure_screen.dart';
+import 'premium_screen.dart';
+import '../services/premium_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -285,7 +287,68 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
+
+          // Premium banner
+          if (!PremiumService.instance.isPremium)
+            GestureDetector(
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PremiumScreen())),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFFFD700), Color(0xFFFFA000)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+                  boxShadow: AppTheme.softShadow(const Color(0xFFFFA000)),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 44, height: 44,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.25),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: const Icon(Icons.workspace_premium_rounded, color: Colors.white, size: 24),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Premium\'a Gec', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16)),
+                          Text('Tum ozelliklerin kilidini ac', style: GoogleFonts.inter(color: Colors.white.withValues(alpha: 0.8), fontSize: 12, fontWeight: FontWeight.w500)),
+                        ],
+                      ),
+                    ),
+                    const Icon(Icons.chevron_right_rounded, color: Colors.white),
+                  ],
+                ),
+              ),
+            ),
+          if (!PremiumService.instance.isPremium)
+            const SizedBox(height: 16),
+
+          if (PremiumService.instance.isPremium)
+            Container(
+              padding: const EdgeInsets.all(14),
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFA000).withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+                border: Border.all(color: const Color(0xFFFFA000).withValues(alpha: 0.2)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.workspace_premium_rounded, color: Color(0xFFFFA000), size: 20),
+                  const SizedBox(width: 8),
+                  Text('Premium Uye', style: GoogleFonts.inter(color: const Color(0xFFFFA000), fontWeight: FontWeight.w700, fontSize: 13)),
+                ],
+              ),
+            ),
 
           // Account Settings
           Text('HESAP AYARLARI', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.textLight, letterSpacing: 1)),

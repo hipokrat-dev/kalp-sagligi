@@ -5,6 +5,7 @@ import 'screens/main_shell.dart';
 import 'screens/login_screen.dart';
 import 'services/auth_service.dart';
 import 'services/notification_service.dart';
+import 'services/premium_service.dart';
 import 'theme/app_theme.dart';
 
 void main() async {
@@ -20,6 +21,9 @@ void main() async {
   await AuthService.instance.init();
 
   final autoLoggedIn = await AuthService.instance.tryAutoLogin();
+  if (autoLoggedIn) {
+    await PremiumService.instance.init();
+  }
 
   runApp(KalpSagligiApp(isLoggedIn: autoLoggedIn));
 }
