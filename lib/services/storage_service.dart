@@ -194,6 +194,29 @@ class StorageService {
     await _prefs.setDouble(_key('target_weight'), weight);
   }
 
+  // Mood tracking
+  Future<int?> getMood(DateTime date) async {
+    await _ensureInitialized();
+    final val = _prefs.getInt(_key('mood_${_dateKey(date)}'));
+    return val;
+  }
+
+  Future<void> setMood(DateTime date, int mood) async {
+    await _ensureInitialized();
+    await _prefs.setInt(_key('mood_${_dateKey(date)}'), mood);
+  }
+
+  Future<Map<String, int>> getMoodHistory(int days) async {
+    await _ensureInitialized();
+    final map = <String, int>{};
+    for (int i = 0; i < days; i++) {
+      final date = DateTime.now().subtract(Duration(days: i));
+      final mood = _prefs.getInt(_key('mood_${_dateKey(date)}'));
+      if (mood != null) map[_dateKey(date)] = mood;
+    }
+    return map;
+  }
+
   // Risk Checklist
   Future<Map<String, dynamic>> getRiskChecklist() async {
     await _ensureInitialized();

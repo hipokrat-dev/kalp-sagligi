@@ -29,6 +29,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   double _height = 0;
   double _weight = 0;
   double _targetWeight = 0;
+  int? _todayMood;
+  Map<String, int> _moodHistory = {};
 
   @override
   void initState() {
@@ -53,6 +55,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     final quitDate = await _storage.getSmokingQuitDate();
     final riskData = await _storage.getRiskChecklist();
     final targetWeight = await _storage.getTargetWeight();
+    final todayMood = await _storage.getMood(now);
+    final moodHistory = await _storage.getMoodHistory(7);
 
     if (mounted) {
       setState(() {
@@ -64,6 +68,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         _height = (riskData['height'] ?? 0.0).toDouble();
         _weight = (riskData['weight'] ?? 0.0).toDouble();
         _targetWeight = targetWeight;
+        _todayMood = todayMood;
+        _moodHistory = moodHistory;
       });
       _fadeController.forward(from: 0);
     }
@@ -220,15 +226,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Kalp Sağlığı',
-                              style: GoogleFonts.inter(fontSize: 22, fontWeight: FontWeight.w800, color: AppTheme.textDark)),
-                          Text('Bugün nasıl hissediyorsun?',
-                              style: GoogleFonts.inter(fontSize: 13, color: AppTheme.textLight)),
-                        ],
-                      ),
+                      child: Text('Kalp Sağlığı',
+                          style: GoogleFonts.inter(fontSize: 22, fontWeight: FontWeight.w800, color: AppTheme.textDark)),
                     ),
                     _buildHeaderIcon(
                       _notificationsEnabled ? Icons.notifications_active_rounded : Icons.notifications_off_rounded,
@@ -236,7 +235,20 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     ),
                   ],
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
+
+                // ── Mood Card ──
+                _MoodCard(
+                  todayMood: _todayMood,
+                  moodHistory: _moodHistory,
+                  onMoodSelected: (mood) async {
+                    setState(() => _todayMood = mood);
+                    await _storage.setMood(DateTime.now(), mood);
+                    final history = await _storage.getMoodHistory(7);
+                    if (mounted) setState(() => _moodHistory = history);
+                  },
+                ),
+                const SizedBox(height: 16),
 
                 // ── Grid Cards (2x2) ──
                 GridView.count(
@@ -557,6 +569,209 @@ class _BmiWeightCard extends StatelessWidget {
             ],
           ],
         ),
+      ),
+    );
+  }
+}
+
+// ── Mood Card ──
+
+class _MoodCard extends StatefulWidget {
+  final int? todayMood;
+  final Map<String, int> moodHistory;
+  final ValueChanged<int> onMoodSelected;
+
+  const _MoodCard({
+    required this.todayMood,
+    required this.moodHistory,
+    required this.onMoodSelected,
+  });
+
+  @override
+  State<_MoodCard> createState() => _MoodCardState();
+}
+
+class _MoodCardState extends State<_MoodCard> with SingleTickerProviderStateMixin {
+  static const _moods = [
+    {'emoji': '😢', 'label': 'Kötü', 'color': Color(0xFFE53935)},
+    {'emoji': '😟', 'label': 'Düşük', 'color': Color(0xFFFF9800)},
+    {'emoji': '😐', 'label': 'Normal', 'color': Color(0xFFFDD835)},
+    {'emoji': '😊', 'label': 'İyi', 'color': Color(0xFF66BB6A)},
+    {'emoji': '😍', 'label': 'Harika', 'color': Color(0xFF26A69A)},
+  ];
+
+  static const _weekDays = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
+
+  bool _showHistory = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: AppTheme.cardShadow,
+      ),
+      child: Column(
+        children: [
+          // Top: Question + emojis
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 16, 18, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      widget.todayMood != null ? 'Bugünkü ruh halin' : 'Bugün nasıl hissediyorsun?',
+                      style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w700, color: AppTheme.textDark),
+                    ),
+                    const Spacer(),
+                    if (widget.moodHistory.isNotEmpty)
+                      GestureDetector(
+                        onTap: () => setState(() => _showHistory = !_showHistory),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: AppTheme.primaryRed.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                _showHistory ? Icons.expand_less : Icons.calendar_view_week,
+                                size: 14,
+                                color: AppTheme.primaryRed,
+                              ),
+                              const SizedBox(width: 3),
+                              Text(
+                                _showHistory ? 'Gizle' : 'Hafta',
+                                style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600, color: AppTheme.primaryRed),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                // Emoji selector
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: List.generate(5, (i) {
+                    final isSelected = widget.todayMood == i;
+                    return GestureDetector(
+                      onTap: () => widget.onMoodSelected(i),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 250),
+                        curve: Curves.easeOutBack,
+                        width: isSelected ? 56 : 48,
+                        height: isSelected ? 56 : 48,
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? (_moods[i]['color'] as Color).withValues(alpha: 0.15)
+                              : const Color(0xFFF5F5F8),
+                          borderRadius: BorderRadius.circular(16),
+                          border: isSelected
+                              ? Border.all(color: (_moods[i]['color'] as Color).withValues(alpha: 0.4), width: 2)
+                              : null,
+                          boxShadow: isSelected
+                              ? [BoxShadow(color: (_moods[i]['color'] as Color).withValues(alpha: 0.2), blurRadius: 8, offset: const Offset(0, 3))]
+                              : null,
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              _moods[i]['emoji'] as String,
+                              style: TextStyle(fontSize: isSelected ? 22 : 20),
+                            ),
+                            if (isSelected)
+                              Text(
+                                _moods[i]['label'] as String,
+                                style: GoogleFonts.inter(
+                                  fontSize: 8,
+                                  fontWeight: FontWeight.w700,
+                                  color: _moods[i]['color'] as Color,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }),
+                ),
+              ],
+            ),
+          ),
+
+          // Weekly history
+          AnimatedCrossFade(
+            firstChild: const SizedBox(height: 16),
+            secondChild: _buildWeeklyHistory(),
+            crossFadeState: _showHistory ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+            duration: const Duration(milliseconds: 300),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWeeklyHistory() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(18, 12, 18, 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Divider(height: 1),
+          const SizedBox(height: 12),
+          Text('Bu Haftanın Ruh Halin',
+              style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.textLight)),
+          const SizedBox(height: 10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: List.generate(7, (i) {
+              final date = DateTime.now().subtract(Duration(days: 6 - i));
+              final key = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+              final mood = widget.moodHistory[key];
+              final isToday = i == 6;
+
+              return Column(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: mood != null
+                          ? (_moods[mood]['color'] as Color).withValues(alpha: 0.12)
+                          : const Color(0xFFF0F0F4),
+                      borderRadius: BorderRadius.circular(10),
+                      border: isToday
+                          ? Border.all(color: AppTheme.primaryRed.withValues(alpha: 0.3), width: 1.5)
+                          : null,
+                    ),
+                    child: Center(
+                      child: Text(
+                        mood != null ? _moods[mood]['emoji'] as String : '·',
+                        style: TextStyle(fontSize: mood != null ? 18 : 14, color: AppTheme.textLight),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _weekDays[date.weekday - 1],
+                    style: GoogleFonts.inter(
+                      fontSize: 10,
+                      fontWeight: isToday ? FontWeight.w700 : FontWeight.w500,
+                      color: isToday ? AppTheme.primaryRed : AppTheme.textLight,
+                    ),
+                  ),
+                ],
+              );
+            }),
+          ),
+        ],
       ),
     );
   }
