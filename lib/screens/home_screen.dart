@@ -7,7 +7,6 @@ import '../services/notification_service.dart';
 import '../widgets/heartbeat_animation.dart';
 import 'steps_screen.dart';
 import 'water_screen.dart';
-import 'nutrition_screen.dart';
 import 'smoking_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -26,12 +25,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   int _stepGoal = 10000;
   int _waterGlasses = 0;
   int _waterGoal = 8;
-  int _totalCalories = 0;
-  int _calorieGoal = 2000;
   DateTime? _smokingQuitDate;
   bool _notificationsEnabled = false;
   double _height = 0;
   double _weight = 0;
+  double _targetWeight = 0;
 
   @override
   void initState() {
@@ -53,10 +51,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     final stepGoal = await _storage.getStepGoal();
     final water = await _storage.getWaterGlasses(now);
     final waterGoal = await _storage.getWaterGoal();
-    final entries = await _storage.getNutritionEntries(now);
-    final calorieGoal = await _storage.getCalorieGoal();
     final quitDate = await _storage.getSmokingQuitDate();
     final riskData = await _storage.getRiskChecklist();
+    final targetWeight = await _storage.getTargetWeight();
 
     if (mounted) {
       setState(() {
@@ -64,11 +61,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         _stepGoal = stepGoal;
         _waterGlasses = water;
         _waterGoal = waterGoal;
-        _totalCalories = entries.fold(0, (sum, e) => sum + e.calories);
-        _calorieGoal = calorieGoal;
         _smokingQuitDate = quitDate;
         _height = (riskData['height'] ?? 0.0).toDouble();
         _weight = (riskData['weight'] ?? 0.0).toDouble();
+        _targetWeight = targetWeight;
       });
       _fadeController.forward(from: 0);
     }
@@ -120,23 +116,59 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     _loadData();
   }
 
-  void _showBmiDialog() async {
+  void _showWeightDialog() async {
     final hCtrl = TextEditingController(text: _height > 0 ? _height.toStringAsFixed(0) : '');
     final wCtrl = TextEditingController(text: _weight > 0 ? _weight.toStringAsFixed(0) : '');
+    final tCtrl = TextEditingController(text: _targetWeight > 0 ? _targetWeight.toStringAsFixed(0) : '');
+
     final result = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('VKİ Hesapla'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(controller: hCtrl, keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Boy', suffixText: 'cm', prefixIcon: Icon(Icons.height))),
-            const SizedBox(height: 12),
-            TextField(controller: wCtrl, keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Kilo', suffixText: 'kg', prefixIcon: Icon(Icons.monitor_weight))),
-          ],
+        title: const Text('VKİ & Kilo Hedefi'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: hCtrl,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: 'Boy', suffixText: 'cm', prefixIcon: Icon(Icons.height)),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: wCtrl,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: 'Mevcut Kilo', suffixText: 'kg', prefixIcon: Icon(Icons.monitor_weight)),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: tCtrl,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: 'Hedef Kilo', suffixText: 'kg', prefixIcon: Icon(Icons.flag_rounded)),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withValues(alpha: 0.06),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline, color: Colors.blue.shade400, size: 18),
+                    const SizedBox(width: 8),
+                    const Expanded(
+                      child: Text(
+                        'Sağlıklı kilo verme hızı haftada 0.5-1 kg\'dır.',
+                        style: TextStyle(fontSize: 12, color: Colors.grey),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('İptal')),
@@ -144,15 +176,23 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         ],
       ),
     );
+
     if (result == true) {
       final h = double.tryParse(hCtrl.text) ?? 0;
       final w = double.tryParse(wCtrl.text) ?? 0;
+      final t = double.tryParse(tCtrl.text) ?? 0;
+
       if (h > 0 && w > 0) {
-        setState(() { _height = h; _weight = w; });
+        setState(() {
+          _height = h;
+          _weight = w;
+          _targetWeight = t;
+        });
         final rd = await _storage.getRiskChecklist();
         rd['height'] = h;
         rd['weight'] = w;
         await _storage.saveRiskChecklist(rd);
+        if (t > 0) await _storage.setTargetWeight(t);
       }
     }
   }
@@ -237,7 +277,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 ),
                 const SizedBox(height: 20),
 
-                // ── Grid Cards ──
+                // ── Grid Cards (2x2) ──
                 GridView.count(
                   crossAxisCount: 2,
                   shrinkWrap: true,
@@ -246,6 +286,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                   mainAxisSpacing: 14,
                   childAspectRatio: 1.0,
                   children: [
+                    // Adımlar
                     _GridCard(
                       gradient: const LinearGradient(colors: [Color(0xFFFF9800), Color(0xFFFFB74D)]),
                       icon: Icons.directions_walk_rounded,
@@ -255,6 +296,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                       progress: _steps / _stepGoal,
                       onTap: () => _navigateAndRefresh(const StepsScreen()),
                     ),
+                    // Su
                     _GridCard(
                       gradient: const LinearGradient(colors: [Color(0xFF42A5F5), Color(0xFF90CAF9)]),
                       icon: Icons.water_drop_rounded,
@@ -264,15 +306,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                       progress: _waterGlasses / _waterGoal,
                       onTap: () => _navigateAndRefresh(const WaterScreen()),
                     ),
-                    _GridCard(
-                      gradient: const LinearGradient(colors: [Color(0xFF66BB6A), Color(0xFFA5D6A7)]),
-                      icon: Icons.restaurant_rounded,
-                      title: 'Kalori',
-                      value: _formatNumber(_totalCalories),
-                      subtitle: '/ $_calorieGoal kcal',
-                      progress: _totalCalories / _calorieGoal,
-                      onTap: () => _navigateAndRefresh(const NutritionScreen()),
-                    ),
+                    // Sigara
                     _GridCard(
                       gradient: const LinearGradient(colors: [Color(0xFF26A69A), Color(0xFF80CBC4)]),
                       icon: Icons.smoke_free_rounded,
@@ -282,67 +316,16 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                       progress: smokingDays != null ? (smokingDays / 365).clamp(0.0, 1.0) : 0.0,
                       onTap: () => _navigateAndRefresh(const SmokingScreen()),
                     ),
+                    // VKİ & Kilo Hedefi
+                    _BmiWeightCard(
+                      bmi: _bmi,
+                      bmiLabel: _bmiLabel,
+                      bmiColor: _bmiColor,
+                      weight: _weight,
+                      targetWeight: _targetWeight,
+                      onTap: _showWeightDialog,
+                    ),
                   ],
-                ),
-                const SizedBox(height: 14),
-
-                // ── VKİ Card ──
-                GestureDetector(
-                  onTap: _showBmiDialog,
-                  child: Container(
-                    padding: const EdgeInsets.all(18),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(22),
-                      boxShadow: AppTheme.cardShadow,
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 56, height: 56,
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(colors: [_bmiColor, _bmiColor.withValues(alpha: 0.5)]),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: const Icon(Icons.monitor_weight_rounded, color: Colors.white, size: 26),
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('VKİ Hesaplama',
-                                  style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textLight, fontWeight: FontWeight.w600)),
-                              const SizedBox(height: 2),
-                              if (_bmi > 0) ...[
-                                Row(
-                                  children: [
-                                    Text(_bmi.toStringAsFixed(1),
-                                        style: GoogleFonts.inter(fontSize: 28, fontWeight: FontWeight.w800, color: _bmiColor)),
-                                    const SizedBox(width: 8),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                                      decoration: BoxDecoration(
-                                        color: _bmiColor.withValues(alpha: 0.1),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Text(_bmiLabel,
-                                          style: TextStyle(color: _bmiColor, fontSize: 12, fontWeight: FontWeight.w700)),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 6),
-                                _BmiBar(bmi: _bmi),
-                              ] else
-                                Text('Dokunarak boy ve kilo girin',
-                                    style: GoogleFonts.inter(fontSize: 14, color: AppTheme.textLight)),
-                            ],
-                          ),
-                        ),
-                        Icon(Icons.chevron_right_rounded, color: AppTheme.textLight.withValues(alpha: 0.4)),
-                      ],
-                    ),
-                  ),
                 ),
                 const SizedBox(height: 16),
               ],
@@ -457,8 +440,11 @@ class _GridCardState extends State<_GridCard> with SingleTickerProviderStateMixi
             Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text(widget.value,
-                    style: GoogleFonts.inter(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w800)),
+                Flexible(
+                  child: Text(widget.value,
+                      style: GoogleFonts.inter(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w800),
+                      overflow: TextOverflow.ellipsis),
+                ),
                 const SizedBox(width: 4),
                 Padding(
                   padding: const EdgeInsets.only(bottom: 3),
@@ -470,7 +456,7 @@ class _GridCardState extends State<_GridCard> with SingleTickerProviderStateMixi
             const SizedBox(height: 10),
             AnimatedBuilder(
               animation: _progressAnim,
-              builder: (_, __) => ClipRRect(
+              builder: (_, child) => ClipRRect(
                 borderRadius: BorderRadius.circular(4),
                 child: LinearProgressIndicator(
                   value: _progressAnim.value,
@@ -487,36 +473,130 @@ class _GridCardState extends State<_GridCard> with SingleTickerProviderStateMixi
   }
 }
 
-// ── BMI Bar ──
+// ── VKİ & Kilo Hedefi Kare Kartı ──
 
-class _BmiBar extends StatelessWidget {
+class _BmiWeightCard extends StatelessWidget {
   final double bmi;
-  const _BmiBar({required this.bmi});
+  final String bmiLabel;
+  final Color bmiColor;
+  final double weight;
+  final double targetWeight;
+  final VoidCallback onTap;
+
+  const _BmiWeightCard({
+    required this.bmi,
+    required this.bmiLabel,
+    required this.bmiColor,
+    required this.weight,
+    required this.targetWeight,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(4),
-      child: SizedBox(
-        height: 6,
-        child: Row(
+    final hasData = bmi > 0;
+    final hasTarget = targetWeight > 0 && weight > 0;
+    final toGo = hasTarget ? (weight - targetWeight) : 0.0;
+    final progress = (hasTarget && toGo > 0) ? (1.0 - toGo / (weight * 0.3)).clamp(0.0, 1.0) : (hasTarget ? 1.0 : 0.0);
+
+    final gradientColors = hasData
+        ? [bmiColor, bmiColor.withValues(alpha: 0.65)]
+        : [const Color(0xFF78909C), const Color(0xFFB0BEC5)];
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(colors: gradientColors, begin: Alignment.topLeft, end: Alignment.bottomRight),
+          borderRadius: BorderRadius.circular(22),
+          boxShadow: AppTheme.softShadow(gradientColors.first),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _seg(Colors.blue, bmi < 18.5),
-            const SizedBox(width: 2),
-            _seg(Colors.green, bmi >= 18.5 && bmi < 25),
-            const SizedBox(width: 2),
-            _seg(Colors.orange, bmi >= 25 && bmi < 30),
-            const SizedBox(width: 2),
-            _seg(AppTheme.primaryRed, bmi >= 30),
+            Container(
+              width: 38, height: 38,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.22),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.monitor_weight_rounded, color: Colors.white, size: 20),
+            ),
+            const Spacer(),
+            if (hasData) ...[
+              Row(
+                children: [
+                  Text('VKİ ',
+                      style: GoogleFonts.inter(color: Colors.white.withValues(alpha: 0.8), fontSize: 12, fontWeight: FontWeight.w600)),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.22),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(bmiLabel,
+                        style: GoogleFonts.inter(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w700)),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 2),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(bmi.toStringAsFixed(1),
+                      style: GoogleFonts.inter(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w800)),
+                  const SizedBox(width: 4),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 3),
+                    child: Text(
+                      hasTarget
+                          ? (toGo > 0 ? '-${toGo.toStringAsFixed(1)} kg' : 'Hedefe ulaştın!')
+                          : '${weight.toStringAsFixed(0)} kg',
+                      style: GoogleFonts.inter(color: Colors.white.withValues(alpha: 0.7), fontSize: 11),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              // Progress bar
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  value: hasTarget ? progress : 0,
+                  backgroundColor: Colors.white.withValues(alpha: 0.2),
+                  valueColor: const AlwaysStoppedAnimation(Colors.white),
+                  minHeight: 5,
+                ),
+              ),
+              if (hasTarget)
+                Padding(
+                  padding: const EdgeInsets.only(top: 3),
+                  child: Text(
+                    'Hedef: ${targetWeight.toStringAsFixed(0)} kg',
+                    style: GoogleFonts.inter(color: Colors.white.withValues(alpha: 0.6), fontSize: 9),
+                  ),
+                ),
+            ] else ...[
+              Text('VKİ & Kilo',
+                  style: GoogleFonts.inter(color: Colors.white.withValues(alpha: 0.8), fontSize: 12, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 4),
+              Text('Hesapla',
+                  style: GoogleFonts.inter(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 10),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: const LinearProgressIndicator(
+                  value: 0,
+                  backgroundColor: Colors.white24,
+                  valueColor: AlwaysStoppedAnimation(Colors.white),
+                  minHeight: 5,
+                ),
+              ),
+            ],
           ],
         ),
       ),
     );
   }
-
-  Widget _seg(Color c, bool active) =>
-      Expanded(child: Container(decoration: BoxDecoration(
-        color: active ? c : c.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(3),
-      )));
 }

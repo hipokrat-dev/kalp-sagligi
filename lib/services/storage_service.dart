@@ -183,6 +183,17 @@ class StorageService {
     await _prefs.setInt(_key('calorie_goal'), goal);
   }
 
+  // Target weight
+  Future<double> getTargetWeight() async {
+    await _ensureInitialized();
+    return _prefs.getDouble(_key('target_weight')) ?? 0.0;
+  }
+
+  Future<void> setTargetWeight(double weight) async {
+    await _ensureInitialized();
+    await _prefs.setDouble(_key('target_weight'), weight);
+  }
+
   // Risk Checklist
   Future<Map<String, dynamic>> getRiskChecklist() async {
     await _ensureInitialized();
