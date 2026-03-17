@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
 import '../services/friends_service.dart';
+import '../services/challenge_service.dart';
 
 class FriendsScreen extends StatefulWidget {
   const FriendsScreen({super.key});
@@ -173,6 +174,17 @@ class _FriendsScreenState extends State<FriendsScreen> with SingleTickerProvider
         if (result.success) _loadFriends();
       }
     }
+  }
+
+  void _openCreateChallengeWithFriend(FriendData friend) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => _CreateChallengeFromFriendSheet(
+        preSelectedFriend: friend,
+      ),
+    );
   }
 
   void _showSnackBar(String message, {bool isError = false}) {
@@ -481,6 +493,13 @@ class _FriendsScreenState extends State<FriendsScreen> with SingleTickerProvider
                       ),
                     ),
                   ),
+                // Challenge button
+                IconButton(
+                  icon: const Icon(Icons.emoji_events_rounded, size: 22),
+                  color: const Color(0xFFFFA000),
+                  tooltip: 'Challenge Olustur',
+                  onPressed: () => _openCreateChallengeWithFriend(friend),
+                ),
                 // More options
                 PopupMenuButton<String>(
                   icon: const Icon(Icons.more_vert, color: AppTheme.textLight),
@@ -785,6 +804,211 @@ class _FriendsScreenState extends State<FriendsScreen> with SingleTickerProvider
               textAlign: TextAlign.center,
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Quick Challenge Creation Sheet (from friend card) ──
+
+class _CreateChallengeFromFriendSheet extends StatefulWidget {
+  final FriendData preSelectedFriend;
+
+  const _CreateChallengeFromFriendSheet({required this.preSelectedFriend});
+
+  @override
+  State<_CreateChallengeFromFriendSheet> createState() => _CreateChallengeFromFriendSheetState();
+}
+
+class _CreateChallengeFromFriendSheetState extends State<_CreateChallengeFromFriendSheet> {
+  String _selectedType = 'steps';
+  String _selectedDuration = 'daily';
+  bool _creating = false;
+
+  String get _defaultTitle {
+    final typeLabel = switch (_selectedType) {
+      'steps' => 'Adim',
+      'water' => 'Su',
+      'smoking' => 'Sigara',
+      _ => '',
+    };
+    final durationLabel = _selectedDuration == 'daily' ? 'Gunluk' : 'Haftalik';
+    return '$durationLabel $typeLabel Challenge';
+  }
+
+  Future<void> _create() async {
+    setState(() => _creating = true);
+
+    final result = await ChallengeService.instance.createChallenge(
+      type: _selectedType,
+      title: _defaultTitle,
+      duration: _selectedDuration,
+      friendUids: [widget.preSelectedFriend.uid],
+    );
+
+    if (mounted) {
+      setState(() => _creating = false);
+      Navigator.pop(context);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result.message),
+          backgroundColor: result.success ? Colors.green : AppTheme.primaryRed,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(24),
+          topRight: Radius.circular(24),
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Handle bar
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppTheme.textLight.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            '${widget.preSelectedFriend.name} ile Challenge',
+            style: GoogleFonts.inter(
+              fontWeight: FontWeight.w700,
+              fontSize: 20,
+              color: AppTheme.textDark,
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // Type selector
+          Text(
+            'Tur',
+            style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 14, color: AppTheme.textDark),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              _buildTypeOption('steps', 'Adim', Icons.directions_walk_rounded, const Color(0xFF1E88E5)),
+              const SizedBox(width: 10),
+              _buildTypeOption('water', 'Su', Icons.water_drop_rounded, const Color(0xFF00ACC1)),
+              const SizedBox(width: 10),
+              _buildTypeOption('smoking', 'Sigara', Icons.smoke_free_rounded, const Color(0xFF43A047)),
+            ],
+          ),
+          const SizedBox(height: 20),
+
+          // Duration selector
+          Text(
+            'Sure',
+            style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 14, color: AppTheme.textDark),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              _buildDurationOption('daily', 'Gunluk'),
+              const SizedBox(width: 10),
+              _buildDurationOption('weekly', 'Haftalik'),
+            ],
+          ),
+          const SizedBox(height: 24),
+
+          // Create button
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: ElevatedButton(
+              onPressed: _creating ? null : _create,
+              child: _creating
+                  ? const SizedBox(
+                      width: 22, height: 22,
+                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                    )
+                  : Text(
+                      'Olustur',
+                      style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 16),
+                    ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTypeOption(String type, String label, IconData icon, Color color) {
+    final selected = _selectedType == type;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => _selectedType = type),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          decoration: BoxDecoration(
+            gradient: selected ? LinearGradient(colors: [color, color.withValues(alpha: 0.7)]) : null,
+            color: selected ? null : AppTheme.background,
+            borderRadius: BorderRadius.circular(14),
+            border: selected ? null : Border.all(color: AppTheme.textLight.withValues(alpha: 0.2)),
+          ),
+          child: Column(
+            children: [
+              Icon(icon, color: selected ? Colors.white : AppTheme.textLight, size: 26),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: GoogleFonts.inter(
+                  color: selected ? Colors.white : AppTheme.textLight,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDurationOption(String duration, String label) {
+    final selected = _selectedDuration == duration;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => _selectedDuration = duration),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: selected ? AppTheme.primaryRed : AppTheme.background,
+            borderRadius: BorderRadius.circular(14),
+            border: selected ? null : Border.all(color: AppTheme.textLight.withValues(alpha: 0.2)),
+          ),
+          child: Center(
+            child: Text(
+              label,
+              style: GoogleFonts.inter(
+                color: selected ? Colors.white : AppTheme.textLight,
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+              ),
+            ),
+          ),
         ),
       ),
     );

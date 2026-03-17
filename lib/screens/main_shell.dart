@@ -4,9 +4,12 @@ import '../theme/app_theme.dart';
 import '../services/alarm_service.dart';
 import '../services/storage_service.dart';
 import '../services/friends_service.dart';
+import '../services/challenge_service.dart';
+import '../services/auth_service.dart';
 import '../widgets/alarm_overlay.dart';
 import 'home_screen.dart';
 import 'friends_screen.dart';
+import 'challenges_screen.dart';
 import 'blood_pressure_screen.dart';
 import 'info_screen.dart';
 import 'settings_screen.dart';
@@ -23,11 +26,14 @@ class _MainShellState extends State<MainShell> {
   AlarmData? _activeAlarm;
   StreamSubscription? _alarmSub;
   StreamSubscription? _friendRequestSub;
+  StreamSubscription? _challengeCountSub;
   int _pendingFriendRequests = 0;
+  int _activeChallengeCount = 0;
 
   final _screens = const [
     HomeScreen(),
     FriendsScreen(),
+    ChallengesScreen(),
     BloodPressureScreen(),
     InfoScreen(),
     SettingsScreen(),
@@ -41,12 +47,78 @@ class _MainShellState extends State<MainShell> {
       if (mounted) setState(() => _activeAlarm = alarm);
     });
     _listenToFriendRequests();
+    _listenToChallengeCount();
+    _checkExpiredChallenges();
   }
 
   void _listenToFriendRequests() {
     _friendRequestSub = FriendsService.instance.pendingRequestCountStream().listen((count) {
       if (mounted) setState(() => _pendingFriendRequests = count);
     });
+  }
+
+  void _listenToChallengeCount() {
+    _challengeCountSub = ChallengeService.instance.activeChallengeCountStream().listen((count) {
+      if (mounted) setState(() => _activeChallengeCount = count);
+    });
+  }
+
+  Future<void> _checkExpiredChallenges() async {
+    try {
+      final results = await ChallengeService.instance.checkAndCompleteExpiredChallenges();
+      final currentUid = AuthService.instance.currentUserId;
+
+      for (final result in results) {
+        if (result.winnerUid == currentUid && mounted) {
+          _triggerWinnerAlarm(result.title);
+        }
+      }
+    } catch (_) {}
+  }
+
+  void _triggerWinnerAlarm(String challengeTitle) {
+    // Show a trophy dialog for the winner
+    if (mounted) {
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('\u{1F3C6}', style: TextStyle(fontSize: 56)),
+              const SizedBox(height: 12),
+              Text(
+                'Tebrikler!',
+                style: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 22,
+                  color: AppTheme.textDark,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '"$challengeTitle" challenge\'ini kazandiniz!',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: AppTheme.textLight,
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Harika!'),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
   }
 
   Future<void> _initAlarms() async {
@@ -72,6 +144,7 @@ class _MainShellState extends State<MainShell> {
   void dispose() {
     _alarmSub?.cancel();
     _friendRequestSub?.cancel();
+    _challengeCountSub?.cancel();
     super.dispose();
   }
 
@@ -130,9 +203,10 @@ class _MainShellState extends State<MainShell> {
               children: [
                 _buildNavItem(0, Icons.home_rounded, Icons.home_outlined, 'Ana Sayfa'),
                 _buildNavItem(1, Icons.people_rounded, Icons.people_outlined, 'Arkadaslar', badgeCount: _pendingFriendRequests),
-                _buildNavItem(2, Icons.monitor_heart, Icons.monitor_heart_outlined, 'Tansiyon'),
-                _buildNavItem(3, Icons.auto_stories_rounded, Icons.auto_stories_outlined, 'Bilgi'),
-                _buildNavItem(4, Icons.person_rounded, Icons.person_outline_rounded, 'Profil'),
+                _buildNavItem(2, Icons.emoji_events_rounded, Icons.emoji_events_outlined, 'Challenge', badgeCount: _activeChallengeCount),
+                _buildNavItem(3, Icons.monitor_heart, Icons.monitor_heart_outlined, 'Tansiyon'),
+                _buildNavItem(4, Icons.auto_stories_rounded, Icons.auto_stories_outlined, 'Bilgi'),
+                _buildNavItem(5, Icons.person_rounded, Icons.person_outline_rounded, 'Profil'),
               ],
             ),
           ),
@@ -150,7 +224,7 @@ class _MainShellState extends State<MainShell> {
         duration: const Duration(milliseconds: 250),
         curve: Curves.easeInOut,
         padding: EdgeInsets.symmetric(
-          horizontal: isActive ? 16 : 12,
+          horizontal: isActive ? 12 : 8,
           vertical: 8,
         ),
         decoration: BoxDecoration(
