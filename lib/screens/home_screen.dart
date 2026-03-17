@@ -7,6 +7,8 @@ import '../widgets/heartbeat_animation.dart';
 import 'steps_screen.dart';
 import 'water_screen.dart';
 import 'smoking_screen.dart';
+import 'blood_pressure_screen.dart';
+import 'challenges_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -300,6 +302,30 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     ),
                   ],
                 ),
+                const SizedBox(height: 14),
+
+                // Quick access cards
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildQuickAccess(
+                        icon: Icons.monitor_heart_rounded,
+                        label: 'Tansiyon',
+                        gradient: AppTheme.primaryGradient2,
+                        onTap: () => _navigateAndRefresh(const BloodPressureScreen()),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildQuickAccess(
+                        icon: Icons.emoji_events_rounded,
+                        label: 'Challenge',
+                        gradient: AppTheme.orangeGradient,
+                        onTap: () => _navigateAndRefresh(const ChallengesScreen()),
+                      ),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 16),
               ],
             ),
@@ -312,6 +338,33 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   String _formatNumber(int n) {
     if (n >= 1000) return '${(n / 1000).toStringAsFixed(1)}k';
     return n.toString();
+  }
+
+  Widget _buildQuickAccess({
+    required IconData icon,
+    required String label,
+    required LinearGradient gradient,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        decoration: BoxDecoration(
+          gradient: gradient,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: AppTheme.softShadow(gradient.colors.first),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: Colors.white, size: 20),
+            const SizedBox(width: 8),
+            Text(label, style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14)),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildHeaderIcon(IconData icon, {required VoidCallback onTap}) {

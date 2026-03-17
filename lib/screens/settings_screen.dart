@@ -7,6 +7,7 @@ import '../services/storage_service.dart';
 import 'login_screen.dart';
 import 'reminder_settings_screen.dart';
 import 'risk_screen.dart';
+import 'blood_pressure_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -331,12 +332,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
               borderRadius: BorderRadius.circular(AppTheme.cardRadius),
               boxShadow: AppTheme.cardShadow,
             ),
-            child: _buildSettingTile(
-              icon: Icons.shield_rounded,
-              iconColor: Colors.orange,
-              title: 'Kalp Riski Degerlendirmesi',
-              subtitle: 'Risk faktorlerinizi kontrol edin',
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RiskScreen())),
+            child: Column(
+              children: [
+                _buildSettingTile(
+                  icon: Icons.shield_rounded,
+                  iconColor: Colors.orange,
+                  title: 'Kalp Riski Degerlendirmesi',
+                  subtitle: 'Risk faktorlerinizi kontrol edin',
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RiskScreen())),
+                ),
+                const Divider(height: 1, indent: 60),
+                _buildSettingTile(
+                  icon: Icons.monitor_heart_rounded,
+                  iconColor: AppTheme.primaryRed,
+                  title: 'Tansiyon & Nabiz',
+                  subtitle: 'Tansiyon ve nabiz kayitlariniz',
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const BloodPressureScreen())),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 24),

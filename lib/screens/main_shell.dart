@@ -9,8 +9,6 @@ import '../services/auth_service.dart';
 import '../widgets/alarm_overlay.dart';
 import 'home_screen.dart';
 import 'friends_screen.dart';
-import 'challenges_screen.dart';
-import 'blood_pressure_screen.dart';
 import 'info_screen.dart';
 import 'settings_screen.dart';
 
@@ -33,8 +31,6 @@ class _MainShellState extends State<MainShell> {
   final _screens = const [
     HomeScreen(),
     FriendsScreen(),
-    ChallengesScreen(),
-    BloodPressureScreen(),
     InfoScreen(),
     SettingsScreen(),
   ];
@@ -202,11 +198,9 @@ class _MainShellState extends State<MainShell> {
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 _buildNavItem(0, Icons.home_rounded, Icons.home_outlined, 'Ana Sayfa'),
-                _buildNavItem(1, Icons.people_rounded, Icons.people_outlined, 'Arkadaslar', badgeCount: _pendingFriendRequests),
-                _buildNavItem(2, Icons.emoji_events_rounded, Icons.emoji_events_outlined, 'Challenge', badgeCount: _activeChallengeCount),
-                _buildNavItem(3, Icons.monitor_heart, Icons.monitor_heart_outlined, 'Tansiyon'),
-                _buildNavItem(4, Icons.auto_stories_rounded, Icons.auto_stories_outlined, 'Bilgi'),
-                _buildNavItem(5, Icons.person_rounded, Icons.person_outline_rounded, 'Profil'),
+                _buildNavItem(1, Icons.people_rounded, Icons.people_outlined, 'Sosyal', badgeCount: _pendingFriendRequests + _activeChallengeCount),
+                _buildNavItem(2, Icons.auto_stories_rounded, Icons.auto_stories_outlined, 'Bilgi'),
+                _buildNavItem(3, Icons.person_rounded, Icons.person_outline_rounded, 'Profil'),
               ],
             ),
           ),
