@@ -6,12 +6,9 @@ import '../services/storage_service.dart';
 import '../services/friends_service.dart';
 import '../services/challenge_service.dart';
 import '../services/auth_service.dart';
-import '../services/premium_service.dart';
 import '../widgets/alarm_overlay.dart';
-import '../widgets/premium_gate.dart';
 import 'home_screen.dart';
 import 'friends_screen.dart';
-import 'premium_screen.dart';
 import 'info_screen.dart';
 import 'settings_screen.dart';
 
@@ -202,8 +199,7 @@ class _MainShellState extends State<MainShell> {
               children: [
                 _buildNavItem(0, Icons.home_rounded, Icons.home_outlined, 'Ana Sayfa'),
                 _buildNavItem(1, Icons.people_rounded, Icons.people_outlined, 'Sosyal',
-                    badgeCount: _pendingFriendRequests + _activeChallengeCount,
-                    premiumOnly: true),
+                    badgeCount: _pendingFriendRequests + _activeChallengeCount),
                 _buildNavItem(2, Icons.auto_stories_rounded, Icons.auto_stories_outlined, 'Bilgi'),
                 _buildNavItem(3, Icons.person_rounded, Icons.person_outline_rounded, 'Profil'),
               ],
@@ -214,17 +210,10 @@ class _MainShellState extends State<MainShell> {
     );
   }
 
-  Widget _buildNavItem(int index, IconData activeIcon, IconData inactiveIcon, String label, {int badgeCount = 0, bool premiumOnly = false}) {
+  Widget _buildNavItem(int index, IconData activeIcon, IconData inactiveIcon, String label, {int badgeCount = 0}) {
     final isActive = _currentIndex == index;
-    final locked = premiumOnly && !PremiumService.instance.isPremium;
     return GestureDetector(
-      onTap: () {
-        if (locked) {
-          Navigator.push(context, MaterialPageRoute(builder: (_) => const PremiumScreen()));
-          return;
-        }
-        setState(() => _currentIndex = index);
-      },
+      onTap: () => setState(() => _currentIndex = index),
       behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 250),
@@ -243,15 +232,12 @@ class _MainShellState extends State<MainShell> {
             Stack(
               clipBehavior: Clip.none,
               children: [
-                PremiumBadge(
-                  show: locked,
-                  child: Icon(
-                    isActive ? activeIcon : inactiveIcon,
-                    color: isActive ? AppTheme.primaryRed : AppTheme.textLight,
-                    size: 24,
-                  ),
+                Icon(
+                  isActive ? activeIcon : inactiveIcon,
+                  color: isActive ? AppTheme.primaryRed : AppTheme.textLight,
+                  size: 24,
                 ),
-                if (badgeCount > 0 && !locked)
+                if (badgeCount > 0)
                   Positioned(
                     right: -8,
                     top: -6,

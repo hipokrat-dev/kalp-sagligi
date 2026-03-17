@@ -9,8 +9,6 @@ import 'water_screen.dart';
 import 'smoking_screen.dart';
 import 'blood_pressure_screen.dart';
 import 'challenges_screen.dart';
-import 'premium_screen.dart';
-import '../services/premium_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -323,14 +321,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                         icon: Icons.emoji_events_rounded,
                         label: 'Challenge',
                         gradient: AppTheme.orangeGradient,
-                        locked: !PremiumService.instance.isPremium,
-                        onTap: () {
-                          if (!PremiumService.instance.isPremium) {
-                            Navigator.push(context, MaterialPageRoute(builder: (_) => const PremiumScreen()));
-                          } else {
-                            _navigateAndRefresh(const ChallengesScreen());
-                          }
-                        },
+                        onTap: () => _navigateAndRefresh(const ChallengesScreen()),
                       ),
                     ),
                   ],
@@ -354,7 +345,6 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     required String label,
     required LinearGradient gradient,
     required VoidCallback onTap,
-    bool locked = false,
   }) {
     return GestureDetector(
       onTap: onTap,
@@ -371,10 +361,6 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             Icon(icon, color: Colors.white, size: 20),
             const SizedBox(width: 8),
             Text(label, style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14)),
-            if (locked) ...[
-              const SizedBox(width: 6),
-              const Icon(Icons.lock_rounded, color: Colors.white70, size: 14),
-            ],
           ],
         ),
       ),
