@@ -117,6 +117,69 @@ class _ReminderSettingsScreenState extends State<ReminderSettingsScreen> {
               style: GoogleFonts.inter(fontSize: 14, color: AppTheme.textLight)),
           const SizedBox(height: 16),
 
+          // Quiet Hours
+          Container(
+            margin: const EdgeInsets.only(bottom: 14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: AppTheme.cardShadow,
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 40, height: 40,
+                        decoration: BoxDecoration(
+                          color: Colors.indigo.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(Icons.bedtime_rounded, color: Colors.indigo, size: 22),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Sessiz Saatler',
+                                style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 14)),
+                            Text('Bu saatler arasında hatırlatma gelmez',
+                                style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textLight)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _TimeButton(label: 'Başlangıç', time: '22:00', color: Colors.indigo,
+                            onTap: () => _pickTime('22:00', (v) {
+                              AlarmService.instance.setQuietHours(int.parse(v.split(':')[0]), 8);
+                            })),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: Icon(Icons.arrow_forward, size: 16, color: AppTheme.textLight),
+                      ),
+                      Expanded(
+                        child: _TimeButton(label: 'Bitiş', time: '08:00', color: Colors.indigo,
+                            onTap: () => _pickTime('08:00', (v) {
+                              AlarmService.instance.setQuietHours(22, int.parse(v.split(':')[0]));
+                            })),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+
           _buildReminderSection(
             icon: Icons.water_drop_rounded,
             title: 'Su İçme Hatırlatması',

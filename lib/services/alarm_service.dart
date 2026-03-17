@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:vibration/vibration.dart';
 import 'package:audioplayers/audioplayers.dart';
 
@@ -11,6 +12,7 @@ class AlarmData {
   final String message;
   final IconData icon;
   final Color color;
+  final String soundAsset;
 
   const AlarmData({
     required this.type,
@@ -18,6 +20,7 @@ class AlarmData {
     required this.message,
     required this.icon,
     required this.color,
+    required this.soundAsset,
   });
 }
 
@@ -32,12 +35,29 @@ class AlarmService {
   Timer? _waterTimer;
   Timer? _movementTimer;
   Timer? _bpTimer;
+  Timer? _snoozeTimer;
 
   bool _running = false;
   DateTime _lastActivity = DateTime.now();
   int _lastStepCount = 0;
 
-  // Call this when user interacts or steps change
+  // Quiet hours
+  int _quietStart = 22; // 22:00
+  int _quietEnd = 8;    // 08:00
+
+  bool get _isQuietHours {
+    final hour = DateTime.now().hour;
+    if (_quietStart > _quietEnd) {
+      return hour >= _quietStart || hour < _quietEnd;
+    }
+    return hour >= _quietStart && hour < _quietEnd;
+  }
+
+  void setQuietHours(int start, int end) {
+    _quietStart = start;
+    _quietEnd = end;
+  }
+
   void reportActivity() {
     _lastActivity = DateTime.now();
   }
@@ -62,31 +82,33 @@ class AlarmService {
 
     if (waterEnabled && waterMinutes > 0) {
       _waterTimer = Timer.periodic(Duration(minutes: waterMinutes), (_) {
-        if (_running) _triggerAlarm(const AlarmData(
-          type: AlarmType.water,
-          title: 'Su İçme Zamanı!',
-          message: 'Bir bardak su iç, kalbin sana teşekkür edecek.\nYeterli su tüketimi kan basıncını dengeler ve kalbin daha verimli çalışmasını sağlar.',
-          icon: Icons.water_drop_rounded,
-          color: Color(0xFF42A5F5),
-        ));
+        if (_running && !_isQuietHours) {
+          _triggerAlarm(const AlarmData(
+            type: AlarmType.water,
+            title: 'Su İçme Zamanı!',
+            message: 'Bir bardak su iç, kalbin sana teşekkür edecek.\nYeterli su tüketimi kan basıncını dengeler.',
+            icon: Icons.water_drop_rounded,
+            color: Color(0xFF42A5F5),
+            soundAsset: 'water_reminder.wav',
+          ));
+        }
       });
     }
 
     if (movementEnabled) {
-      // Check inactivity every minute, trigger if inactive > movementMinutes (default 60)
-      final inactivityThreshold = movementMinutes > 0 ? movementMinutes : 60;
+      final threshold = movementMinutes > 0 ? movementMinutes : 60;
       _movementTimer = Timer.periodic(const Duration(minutes: 1), (_) {
-        if (!_running) return;
-        final inactiveMinutes = DateTime.now().difference(_lastActivity).inMinutes;
-        if (inactiveMinutes >= inactivityThreshold) {
+        if (!_running || _isQuietHours) return;
+        final inactiveMin = DateTime.now().difference(_lastActivity).inMinutes;
+        if (inactiveMin >= threshold) {
           _triggerAlarm(AlarmData(
             type: AlarmType.movement,
-            title: 'Çok Uzun Süredir Hareketsizsin!',
-            message: '$inactiveMinutes dakikadır hareket etmedin.\nAyağa kalk, biraz yürü. 5 dakikalık yürüyüş bile kan dolaşımını iyileştirir ve kalp sağlığını korur.',
+            title: '$inactiveMin Dakikadır Hareketsizsin!',
+            message: 'Ayağa kalk ve biraz yürü.\n5 dakikalık yürüyüş bile kan dolaşımını iyileştirir.',
             icon: Icons.directions_walk_rounded,
             color: const Color(0xFFFF9800),
+            soundAsset: 'movement_reminder.wav',
           ));
-          // Reset so it doesn't fire every minute
           _lastActivity = DateTime.now();
         }
       });
@@ -94,13 +116,16 @@ class AlarmService {
 
     if (bpEnabled && bpMinutes > 0) {
       _bpTimer = Timer.periodic(Duration(minutes: bpMinutes), (_) {
-        if (_running) _triggerAlarm(const AlarmData(
-          type: AlarmType.bloodPressure,
-          title: 'Tansiyon Ölçüm Zamanı!',
-          message: 'Tansiyonunu ölçmeyi unutma.\nDüzenli takip kalp sağlığının temelidir. 5 dakika dinlendikten sonra ölç.',
-          icon: Icons.monitor_heart_rounded,
-          color: Color(0xFFE53935),
-        ));
+        if (_running && !_isQuietHours) {
+          _triggerAlarm(const AlarmData(
+            type: AlarmType.bloodPressure,
+            title: 'Tansiyon Ölçüm Zamanı!',
+            message: 'Tansiyonunu ölçmeyi unutma.\n5 dakika dinlendikten sonra ölç.',
+            icon: Icons.monitor_heart_rounded,
+            color: Color(0xFFE53935),
+            soundAsset: 'bp_reminder.wav',
+          ));
+        }
       });
     }
   }
@@ -110,24 +135,58 @@ class AlarmService {
     _waterTimer?.cancel();
     _movementTimer?.cancel();
     _bpTimer?.cancel();
+    _snoozeTimer?.cancel();
     _waterTimer = null;
     _movementTimer = null;
     _bpTimer = null;
+    _snoozeTimer = null;
   }
 
   Future<void> _triggerAlarm(AlarmData alarm) async {
     _alarmController.add(alarm);
 
+    // Haptic feedback
+    HapticFeedback.heavyImpact();
+
+    // Type-specific vibration
     try {
       final hasVibrator = await Vibration.hasVibrator();
       if (hasVibrator) {
-        Vibration.vibrate(pattern: [0, 300, 150, 300, 150, 500], intensities: [0, 200, 0, 200, 0, 255]);
+        switch (alarm.type) {
+          case AlarmType.water:
+            Vibration.vibrate(pattern: [0, 200, 100, 200], intensities: [0, 150, 0, 150]);
+          case AlarmType.movement:
+            Vibration.vibrate(pattern: [0, 300, 150, 300, 150, 500], intensities: [0, 200, 0, 200, 0, 255]);
+          case AlarmType.bloodPressure:
+            Vibration.vibrate(pattern: [0, 400, 200, 400], intensities: [0, 180, 0, 180]);
+        }
       }
     } catch (_) {}
 
+    // Play type-specific sound
     try {
-      await _player.play(AssetSource('alarm.mp3'));
-    } catch (_) {}
+      await _player.setVolume(0.7);
+      await _player.play(AssetSource(alarm.soundAsset));
+    } catch (_) {
+      try {
+        await _player.play(AssetSource('notification.wav'));
+      } catch (_) {}
+    }
+
+    // Auto-dismiss after 30 seconds
+    Future.delayed(const Duration(seconds: 30), () {
+      dismissAlarm();
+    });
+  }
+
+  void snoozeAlarm(AlarmData alarm, {int minutes = 5}) {
+    dismissAlarm();
+    _snoozeTimer?.cancel();
+    _snoozeTimer = Timer(Duration(minutes: minutes), () {
+      if (_running && !_isQuietHours) {
+        _triggerAlarm(alarm);
+      }
+    });
   }
 
   void dismissAlarm() {
