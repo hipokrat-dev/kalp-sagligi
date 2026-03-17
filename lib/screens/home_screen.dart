@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
 import '../services/storage_service.dart';
-import '../services/health_tips.dart';
 import '../services/notification_service.dart';
 import '../widgets/heartbeat_animation.dart';
 import 'steps_screen.dart';
@@ -199,7 +198,6 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
   @override
   Widget build(BuildContext context) {
-    final tip = HealthTips.getDailyTip();
     final smokingDays = _smokingQuitDate != null ? DateTime.now().difference(_smokingQuitDate!).inDays : null;
 
     return Scaffold(
@@ -237,43 +235,6 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                       onTap: _toggleNotifications,
                     ),
                   ],
-                ),
-                const SizedBox(height: 20),
-
-                // ── Daily Tip Card ──
-                Container(
-                  padding: const EdgeInsets.all(18),
-                  decoration: BoxDecoration(
-                    gradient: AppTheme.primaryGradient,
-                    borderRadius: BorderRadius.circular(22),
-                    boxShadow: AppTheme.softShadow(AppTheme.primaryRed),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(6),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Icon(Icons.lightbulb_rounded, color: Colors.amber, size: 18),
-                          ),
-                          const SizedBox(width: 8),
-                          Text('Günün Bilgisi',
-                              style: GoogleFonts.inter(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w600)),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      Text(tip['title']!,
-                          style: GoogleFonts.inter(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700)),
-                      const SizedBox(height: 4),
-                      Text(tip['body']!,
-                          style: GoogleFonts.inter(color: Colors.white.withValues(alpha: 0.88), fontSize: 13, height: 1.4)),
-                    ],
-                  ),
                 ),
                 const SizedBox(height: 20),
 
