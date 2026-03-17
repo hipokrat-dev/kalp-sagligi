@@ -5,6 +5,7 @@ import '../services/health_connect_service.dart';
 import '../services/storage_service.dart';
 import 'login_screen.dart';
 import 'reminder_settings_screen.dart';
+import 'risk_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -287,6 +288,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   onTap: _changePassword,
                 ),
               ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Risk Assessment
+          const Text(
+            'Sağlık Değerlendirmesi',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
+          const SizedBox(height: 8),
+
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.shield_rounded, color: Colors.orange),
+              title: const Text('Kalp Riski Değerlendirmesi'),
+              subtitle: const Text('Risk faktörlerinizi kontrol edin'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const RiskScreen()),
+              ),
             ),
           ),
           const SizedBox(height: 16),

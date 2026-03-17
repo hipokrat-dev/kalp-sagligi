@@ -3,10 +3,11 @@ import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../services/alarm_service.dart';
 import '../services/storage_service.dart';
+import '../services/friends_service.dart';
 import '../widgets/alarm_overlay.dart';
 import 'home_screen.dart';
+import 'friends_screen.dart';
 import 'blood_pressure_screen.dart';
-import 'risk_screen.dart';
 import 'info_screen.dart';
 import 'settings_screen.dart';
 
@@ -21,11 +22,13 @@ class _MainShellState extends State<MainShell> {
   int _currentIndex = 0;
   AlarmData? _activeAlarm;
   StreamSubscription? _alarmSub;
+  StreamSubscription? _friendRequestSub;
+  int _pendingFriendRequests = 0;
 
   final _screens = const [
     HomeScreen(),
+    FriendsScreen(),
     BloodPressureScreen(),
-    RiskScreen(),
     InfoScreen(),
     SettingsScreen(),
   ];
@@ -36,6 +39,13 @@ class _MainShellState extends State<MainShell> {
     _initAlarms();
     _alarmSub = AlarmService.instance.alarmStream.listen((alarm) {
       if (mounted) setState(() => _activeAlarm = alarm);
+    });
+    _listenToFriendRequests();
+  }
+
+  void _listenToFriendRequests() {
+    _friendRequestSub = FriendsService.instance.pendingRequestCountStream().listen((count) {
+      if (mounted) setState(() => _pendingFriendRequests = count);
     });
   }
 
@@ -61,6 +71,7 @@ class _MainShellState extends State<MainShell> {
   @override
   void dispose() {
     _alarmSub?.cancel();
+    _friendRequestSub?.cancel();
     super.dispose();
   }
 
@@ -118,8 +129,8 @@ class _MainShellState extends State<MainShell> {
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 _buildNavItem(0, Icons.home_rounded, Icons.home_outlined, 'Ana Sayfa'),
-                _buildNavItem(1, Icons.monitor_heart, Icons.monitor_heart_outlined, 'Tansiyon'),
-                _buildNavItem(2, Icons.shield_rounded, Icons.shield_outlined, 'Risk'),
+                _buildNavItem(1, Icons.people_rounded, Icons.people_outlined, 'Arkadaslar', badgeCount: _pendingFriendRequests),
+                _buildNavItem(2, Icons.monitor_heart, Icons.monitor_heart_outlined, 'Tansiyon'),
                 _buildNavItem(3, Icons.auto_stories_rounded, Icons.auto_stories_outlined, 'Bilgi'),
                 _buildNavItem(4, Icons.person_rounded, Icons.person_outline_rounded, 'Profil'),
               ],
@@ -130,7 +141,7 @@ class _MainShellState extends State<MainShell> {
     );
   }
 
-  Widget _buildNavItem(int index, IconData activeIcon, IconData inactiveIcon, String label) {
+  Widget _buildNavItem(int index, IconData activeIcon, IconData inactiveIcon, String label, {int badgeCount = 0}) {
     final isActive = _currentIndex == index;
     return GestureDetector(
       onTap: () => setState(() => _currentIndex = index),
@@ -149,10 +160,38 @@ class _MainShellState extends State<MainShell> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              isActive ? activeIcon : inactiveIcon,
-              color: isActive ? AppTheme.primaryRed : AppTheme.textLight,
-              size: 24,
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Icon(
+                  isActive ? activeIcon : inactiveIcon,
+                  color: isActive ? AppTheme.primaryRed : AppTheme.textLight,
+                  size: 24,
+                ),
+                if (badgeCount > 0)
+                  Positioned(
+                    right: -8,
+                    top: -6,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryRed,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.white, width: 1.5),
+                      ),
+                      constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                      child: Text(
+                        badgeCount > 9 ? '9+' : '$badgeCount',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+              ],
             ),
             const SizedBox(height: 2),
             Text(
