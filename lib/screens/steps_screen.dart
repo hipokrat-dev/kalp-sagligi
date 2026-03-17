@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import '../theme/app_theme.dart';
 import '../services/storage_service.dart';
+import '../services/health_connect_service.dart';
 
 class StepsScreen extends StatefulWidget {
   const StepsScreen({super.key});
@@ -16,6 +17,7 @@ class _StepsScreenState extends State<StepsScreen> {
   int _steps = 0;
   int _goal = 10000;
   Map<String, int> _history = {};
+  bool _healthConnectEnabled = false;
 
   @override
   void initState() {
@@ -27,13 +29,31 @@ class _StepsScreenState extends State<StepsScreen> {
     final steps = await _storage.getSteps(DateTime.now());
     final goal = await _storage.getStepGoal();
     final history = await _storage.getStepsHistory(7);
+    final hcEnabled = await _storage.getHealthConnectEnabled();
+
     if (mounted) {
       setState(() {
         _steps = steps;
         _goal = goal;
         _history = history;
+        _healthConnectEnabled = hcEnabled;
       });
     }
+
+    // Try to sync from Health Connect
+    if (hcEnabled) _syncHealthConnect();
+  }
+
+  Future<void> _syncHealthConnect() async {
+    try {
+      final hcSteps = await HealthConnectService.instance.getTodaySteps();
+      if (hcSteps > _steps && mounted) {
+        setState(() => _steps = hcSteps);
+        await _storage.setSteps(DateTime.now(), hcSteps);
+        final history = await _storage.getStepsHistory(7);
+        if (mounted) setState(() => _history = history);
+      }
+    } catch (_) {}
   }
 
   void _addSteps() {
@@ -119,6 +139,23 @@ class _StepsScreenState extends State<StepsScreen> {
       appBar: AppBar(
         title: const Text('Adım Takibi'),
         actions: [
+          if (_healthConnectEnabled)
+            IconButton(
+              icon: const Icon(Icons.sync_rounded),
+              onPressed: () async {
+                await _syncHealthConnect();
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Text('Health Connect ile senkronize edildi'),
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  );
+                }
+              },
+              tooltip: 'Health Connect Senkronize',
+            ),
           IconButton(
             icon: const Icon(Icons.flag),
             onPressed: _editGoal,

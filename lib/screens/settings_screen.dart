@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../services/auth_service.dart';
+import '../services/health_connect_service.dart';
+import '../services/storage_service.dart';
 import 'login_screen.dart';
+import 'reminder_settings_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -12,11 +15,49 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   String _username = '';
+  bool _healthConnectAvailable = false;
+  bool _healthConnectEnabled = false;
 
   @override
   void initState() {
     super.initState();
     _username = AuthService.instance.currentUsername ?? '';
+    _loadHealthConnect();
+  }
+
+  Future<void> _loadHealthConnect() async {
+    final available = await HealthConnectService.instance.checkAvailability();
+    final enabled = await StorageService.instance.getHealthConnectEnabled();
+    if (mounted) {
+      setState(() {
+        _healthConnectAvailable = available;
+        _healthConnectEnabled = enabled && available;
+      });
+    }
+  }
+
+  void _toggleHealthConnect(bool value) async {
+    if (value) {
+      final granted = await HealthConnectService.instance.requestPermissions();
+      if (granted) {
+        await StorageService.instance.setHealthConnectEnabled(true);
+        if (mounted) setState(() => _healthConnectEnabled = true);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Health Connect izni verilmedi'),
+              backgroundColor: AppTheme.primaryRed,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          );
+        }
+      }
+    } else {
+      await StorageService.instance.setHealthConnectEnabled(false);
+      if (mounted) setState(() => _healthConnectEnabled = false);
+    }
   }
 
   void _changeUsername() async {
@@ -244,6 +285,48 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   subtitle: const Text('Hesap şifrenizi güncelleyin'),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: _changePassword,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Health & Reminders
+          const Text(
+            'Sağlık & Hatırlatmalar',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
+          const SizedBox(height: 8),
+
+          Card(
+            child: Column(
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.notifications_active_rounded, color: Colors.orange),
+                  title: const Text('Hatırlatma Ayarları'),
+                  subtitle: const Text('Su, hareket, tansiyon hatırlatmaları'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const ReminderSettingsScreen()),
+                  ),
+                ),
+                const Divider(height: 1),
+                SwitchListTile(
+                  secondary: Icon(
+                    Icons.favorite_rounded,
+                    color: _healthConnectAvailable ? Colors.green : Colors.grey,
+                  ),
+                  title: const Text('Google Health Connect'),
+                  subtitle: Text(
+                    _healthConnectAvailable
+                        ? (_healthConnectEnabled ? 'Bağlı - adımlar otomatik çekilir' : 'Adım sayacı bağlantısı')
+                        : 'Bu cihazda kullanılamıyor',
+                  ),
+                  value: _healthConnectEnabled,
+                  activeThumbColor: Colors.green,
+                  activeTrackColor: Colors.green.withValues(alpha: 0.3),
+                  onChanged: _healthConnectAvailable ? _toggleHealthConnect : null,
                 ),
               ],
             ),

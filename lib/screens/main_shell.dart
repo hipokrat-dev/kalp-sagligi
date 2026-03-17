@@ -1,5 +1,9 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
+import '../services/alarm_service.dart';
+import '../services/storage_service.dart';
+import '../widgets/alarm_overlay.dart';
 import 'home_screen.dart';
 import 'blood_pressure_screen.dart';
 import 'risk_screen.dart';
@@ -15,6 +19,8 @@ class MainShell extends StatefulWidget {
 
 class _MainShellState extends State<MainShell> {
   int _currentIndex = 0;
+  AlarmData? _activeAlarm;
+  StreamSubscription? _alarmSub;
 
   final _screens = const [
     HomeScreen(),
@@ -25,15 +31,64 @@ class _MainShellState extends State<MainShell> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _initAlarms();
+    _alarmSub = AlarmService.instance.alarmStream.listen((alarm) {
+      if (mounted) setState(() => _activeAlarm = alarm);
+    });
+  }
+
+  Future<void> _initAlarms() async {
+    final storage = StorageService.instance;
+    final waterEnabled = await storage.getReminderEnabled('water');
+    final waterMin = await storage.getReminderInterval('water');
+    final moveEnabled = await storage.getReminderEnabled('movement');
+    final moveMin = await storage.getReminderInterval('movement');
+    final bpEnabled = await storage.getReminderEnabled('bp');
+    final bpMin = await storage.getReminderInterval('bp');
+
+    AlarmService.instance.startTimers(
+      waterMinutes: waterMin,
+      movementMinutes: moveMin,
+      bpMinutes: bpMin,
+      waterEnabled: waterEnabled,
+      movementEnabled: moveEnabled,
+      bpEnabled: bpEnabled,
+    );
+  }
+
+  @override
+  void dispose() {
+    _alarmSub?.cancel();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 300),
-        transitionBuilder: (child, animation) => FadeTransition(opacity: animation, child: child),
-        child: KeyedSubtree(
-          key: ValueKey(_currentIndex),
-          child: _screens[_currentIndex],
-        ),
+      body: Stack(
+        children: [
+          // Main content
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            transitionBuilder: (child, animation) => FadeTransition(opacity: animation, child: child),
+            child: KeyedSubtree(
+              key: ValueKey(_currentIndex),
+              child: _screens[_currentIndex],
+            ),
+          ),
+
+          // Alarm overlay
+          if (_activeAlarm != null)
+            AlarmOverlay(
+              alarm: _activeAlarm!,
+              onDismiss: () {
+                AlarmService.instance.dismissAlarm();
+                setState(() => _activeAlarm = null);
+              },
+            ),
+        ],
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(

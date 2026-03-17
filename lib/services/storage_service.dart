@@ -194,6 +194,59 @@ class StorageService {
     await _prefs.setDouble(_key('target_weight'), weight);
   }
 
+  // Reminder settings
+  Future<int> getReminderInterval(String type) async {
+    await _ensureInitialized();
+    return _prefs.getInt(_key('reminder_${type}_minutes')) ??
+        (type == 'water' ? 120 : type == 'movement' ? 60 : 480);
+  }
+
+  Future<void> setReminderInterval(String type, int minutes) async {
+    await _ensureInitialized();
+    await _prefs.setInt(_key('reminder_${type}_minutes'), minutes);
+  }
+
+  Future<bool> getReminderEnabled(String type) async {
+    await _ensureInitialized();
+    return _prefs.getBool(_key('reminder_${type}_enabled')) ?? true;
+  }
+
+  Future<void> setReminderEnabled(String type, bool enabled) async {
+    await _ensureInitialized();
+    await _prefs.setBool(_key('reminder_${type}_enabled'), enabled);
+  }
+
+  Future<String> getReminderStartTime(String type) async {
+    await _ensureInitialized();
+    return _prefs.getString(_key('reminder_${type}_start')) ?? '08:00';
+  }
+
+  Future<void> setReminderStartTime(String type, String time) async {
+    await _ensureInitialized();
+    await _prefs.setString(_key('reminder_${type}_start'), time);
+  }
+
+  Future<String> getReminderEndTime(String type) async {
+    await _ensureInitialized();
+    return _prefs.getString(_key('reminder_${type}_end')) ?? '22:00';
+  }
+
+  Future<void> setReminderEndTime(String type, String time) async {
+    await _ensureInitialized();
+    await _prefs.setString(_key('reminder_${type}_end'), time);
+  }
+
+  // Health Connect preference
+  Future<bool> getHealthConnectEnabled() async {
+    await _ensureInitialized();
+    return _prefs.getBool(_key('health_connect_enabled')) ?? false;
+  }
+
+  Future<void> setHealthConnectEnabled(bool enabled) async {
+    await _ensureInitialized();
+    await _prefs.setBool(_key('health_connect_enabled'), enabled);
+  }
+
   // Mood tracking
   Future<int?> getMood(DateTime date) async {
     await _ensureInitialized();
