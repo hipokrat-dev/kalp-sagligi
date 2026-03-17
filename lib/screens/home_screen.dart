@@ -9,6 +9,7 @@ import 'nutrition_screen.dart';
 import 'smoking_screen.dart';
 import 'blood_pressure_screen.dart';
 import 'risk_screen.dart';
+import 'info_screen.dart';
 import 'settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -231,6 +232,17 @@ class _HomeScreenState extends State<HomeScreen> {
               subtitle: 'Kalp sağlığı risk göstergelerini görüntüle',
               color: AppTheme.darkRed,
               onTap: () => _navigateAndRefresh(const RiskScreen()),
+            ),
+            const SizedBox(height: 12),
+            _buildMenuCard(
+              icon: Icons.menu_book,
+              title: 'Bilgilendirme',
+              subtitle: 'Tansiyon, hareket, ölçüler ve sigara bırakma rehberi',
+              color: Colors.indigo,
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const InfoScreen()),
+              ),
             ),
           ],
         ),
