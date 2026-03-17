@@ -34,6 +34,20 @@ class AlarmService {
   Timer? _bpTimer;
 
   bool _running = false;
+  DateTime _lastActivity = DateTime.now();
+  int _lastStepCount = 0;
+
+  // Call this when user interacts or steps change
+  void reportActivity() {
+    _lastActivity = DateTime.now();
+  }
+
+  void reportSteps(int steps) {
+    if (steps > _lastStepCount) {
+      _lastStepCount = steps;
+      _lastActivity = DateTime.now();
+    }
+  }
 
   void startTimers({
     required int waterMinutes,
@@ -51,22 +65,30 @@ class AlarmService {
         if (_running) _triggerAlarm(const AlarmData(
           type: AlarmType.water,
           title: 'Su İçme Zamanı!',
-          message: 'Bir bardak su iç, kalbin sana teşekkür edecek. Günde en az 8 bardak su içmeyi hedefle.',
+          message: 'Bir bardak su iç, kalbin sana teşekkür edecek.\nYeterli su tüketimi kan basıncını dengeler ve kalbin daha verimli çalışmasını sağlar.',
           icon: Icons.water_drop_rounded,
           color: Color(0xFF42A5F5),
         ));
       });
     }
 
-    if (movementEnabled && movementMinutes > 0) {
-      _movementTimer = Timer.periodic(Duration(minutes: movementMinutes), (_) {
-        if (_running) _triggerAlarm(const AlarmData(
-          type: AlarmType.movement,
-          title: 'Hareket Zamanı!',
-          message: 'Ayağa kalk ve biraz yürü. 5 dakikalık bir yürüyüş bile kan dolaşımını iyileştirir.',
-          icon: Icons.directions_walk_rounded,
-          color: Color(0xFFFF9800),
-        ));
+    if (movementEnabled) {
+      // Check inactivity every minute, trigger if inactive > movementMinutes (default 60)
+      final inactivityThreshold = movementMinutes > 0 ? movementMinutes : 60;
+      _movementTimer = Timer.periodic(const Duration(minutes: 1), (_) {
+        if (!_running) return;
+        final inactiveMinutes = DateTime.now().difference(_lastActivity).inMinutes;
+        if (inactiveMinutes >= inactivityThreshold) {
+          _triggerAlarm(AlarmData(
+            type: AlarmType.movement,
+            title: 'Çok Uzun Süredir Hareketsizsin!',
+            message: '$inactiveMinutes dakikadır hareket etmedin.\nAyağa kalk, biraz yürü. 5 dakikalık yürüyüş bile kan dolaşımını iyileştirir ve kalp sağlığını korur.',
+            icon: Icons.directions_walk_rounded,
+            color: const Color(0xFFFF9800),
+          ));
+          // Reset so it doesn't fire every minute
+          _lastActivity = DateTime.now();
+        }
       });
     }
 
@@ -75,7 +97,7 @@ class AlarmService {
         if (_running) _triggerAlarm(const AlarmData(
           type: AlarmType.bloodPressure,
           title: 'Tansiyon Ölçüm Zamanı!',
-          message: 'Tansiyonunu ölçmeyi unutma. Düzenli takip kalp sağlığının temelidir.',
+          message: 'Tansiyonunu ölçmeyi unutma.\nDüzenli takip kalp sağlığının temelidir. 5 dakika dinlendikten sonra ölç.',
           icon: Icons.monitor_heart_rounded,
           color: Color(0xFFE53935),
         ));
@@ -96,7 +118,6 @@ class AlarmService {
   Future<void> _triggerAlarm(AlarmData alarm) async {
     _alarmController.add(alarm);
 
-    // Vibrate
     try {
       final hasVibrator = await Vibration.hasVibrator();
       if (hasVibrator) {
@@ -104,15 +125,9 @@ class AlarmService {
       }
     } catch (_) {}
 
-    // Sound
     try {
       await _player.play(AssetSource('alarm.mp3'));
-    } catch (_) {
-      // No alarm sound file, use system default
-      try {
-        await _player.play(UrlSource('https://invalid.local/noop'));
-      } catch (_) {}
-    }
+    } catch (_) {}
   }
 
   void dismissAlarm() {

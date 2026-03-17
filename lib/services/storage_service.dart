@@ -164,7 +164,7 @@ class StorageService {
   // Water goal
   Future<int> getWaterGoal() async {
     await _ensureInitialized();
-    return _prefs.getInt(_key('water_goal')) ?? 8;
+    return _prefs.getInt(_key('water_goal')) ?? 14;
   }
 
   Future<void> setWaterGoal(int goal) async {

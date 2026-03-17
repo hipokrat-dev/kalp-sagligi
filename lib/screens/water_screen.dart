@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
 import '../services/storage_service.dart';
+import 'reminder_settings_screen.dart';
 
 class WaterScreen extends StatefulWidget {
   const WaterScreen({super.key});
@@ -12,7 +14,8 @@ class WaterScreen extends StatefulWidget {
 class _WaterScreenState extends State<WaterScreen> {
   final _storage = StorageService.instance;
   int _glasses = 0;
-  int _goal = 8;
+  int _goalMl = 3500;
+  final int _glassSize = 250; // ml per glass
 
   @override
   void initState() {
@@ -20,13 +23,16 @@ class _WaterScreenState extends State<WaterScreen> {
     _loadData();
   }
 
+  int get _goal => (_goalMl / _glassSize).ceil();
+  int get _currentMl => _glasses * _glassSize;
+
   Future<void> _loadData() async {
     final glasses = await _storage.getWaterGlasses(DateTime.now());
     final goal = await _storage.getWaterGoal();
     if (mounted) {
       setState(() {
         _glasses = glasses;
-        _goal = goal;
+        _goalMl = goal * _glassSize; // backward compat: stored as glasses
       });
     }
   }
@@ -44,18 +50,40 @@ class _WaterScreenState extends State<WaterScreen> {
   }
 
   void _editGoal() async {
-    final controller = TextEditingController(text: _goal.toString());
+    final controller = TextEditingController(text: _goalMl.toString());
     final result = await showDialog<int>(
       context: context,
       builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text('Günlük Su Hedefi'),
-        content: TextField(
-          controller: controller,
-          keyboardType: TextInputType.number,
-          decoration: const InputDecoration(
-            labelText: 'Bardak sayısı',
-            suffixText: 'bardak',
-          ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: controller,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Hedef',
+                suffixText: 'ml',
+                prefixIcon: Icon(Icons.water_drop),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              children: [2000, 2500, 3000, 3500, 4000].map((ml) {
+                return ActionChip(
+                  label: Text('$ml ml'),
+                  onPressed: () => controller.text = ml.toString(),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Önerilen: Günde 2000-3500 ml',
+              style: TextStyle(fontSize: 12, color: AppTheme.textLight),
+            ),
+          ],
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('İptal')),
@@ -67,20 +95,25 @@ class _WaterScreenState extends State<WaterScreen> {
       ),
     );
     if (result != null && result > 0) {
-      setState(() => _goal = result);
-      await _storage.setWaterGoal(result);
+      final glasses = (result / _glassSize).ceil();
+      setState(() => _goalMl = result);
+      await _storage.setWaterGoal(glasses);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final progress = (_glasses / _goal).clamp(0.0, 1.0);
-    final ml = _glasses * 250;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Su Takibi'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.notifications_active_rounded),
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ReminderSettingsScreen())),
+            tooltip: 'Su Hatırlatma Ayarları',
+          ),
           IconButton(
             icon: const Icon(Icons.flag),
             onPressed: _editGoal,
@@ -114,30 +147,22 @@ class _WaterScreenState extends State<WaterScreen> {
                         ),
                         Column(
                           children: [
-                            Icon(
-                              Icons.water_drop,
-                              size: 40,
-                              color: Colors.blue.shade400,
-                            ),
-                            Text(
-                              '$_glasses/$_goal',
-                              style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-                            ),
-                            const Text(
-                              'bardak',
-                              style: TextStyle(color: Colors.grey, fontSize: 14),
-                            ),
+                            Icon(Icons.water_drop, size: 40, color: Colors.blue.shade400),
+                            Text('$_currentMl',
+                                style: GoogleFonts.inter(fontSize: 32, fontWeight: FontWeight.w800)),
+                            Text('/ $_goalMl ml',
+                                style: TextStyle(color: AppTheme.textLight, fontSize: 14)),
                           ],
                         ),
                       ],
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
                     Text(
-                      '$ml ml / ${_goal * 250} ml',
-                      style: TextStyle(fontSize: 16, color: AppTheme.textLight),
+                      '$_glasses bardak  •  ${(_goalMl - _currentMl).clamp(0, 99999)} ml kaldı',
+                      style: TextStyle(fontSize: 14, color: AppTheme.textLight),
                     ),
                     const SizedBox(height: 4),
-                    if (_glasses >= _goal)
+                    if (_currentMl >= _goalMl)
                       const Text(
                         'Tebrikler! Günlük hedefinize ulaştınız!',
                         style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
@@ -191,15 +216,13 @@ class _WaterScreenState extends State<WaterScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Bugünkü Su Tüketimin',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                      ),
+                      const Text('Bugünkü Su Tüketimin',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                       const SizedBox(height: 12),
                       Expanded(
                         child: GridView.builder(
                           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 4,
+                            crossAxisCount: 5,
                             mainAxisSpacing: 8,
                             crossAxisSpacing: 8,
                           ),
@@ -218,7 +241,7 @@ class _WaterScreenState extends State<WaterScreen> {
                               child: Icon(
                                 Icons.water_drop,
                                 color: filled ? Colors.blue : Colors.grey.shade300,
-                                size: 28,
+                                size: 24,
                               ),
                             );
                           },

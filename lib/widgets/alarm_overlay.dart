@@ -6,7 +6,8 @@ import '../theme/app_theme.dart';
 class AlarmOverlay extends StatefulWidget {
   final AlarmData alarm;
   final VoidCallback onDismiss;
-  const AlarmOverlay({super.key, required this.alarm, required this.onDismiss});
+  final VoidCallback? onDisableType;
+  const AlarmOverlay({super.key, required this.alarm, required this.onDismiss, this.onDisableType});
 
   @override
   State<AlarmOverlay> createState() => _AlarmOverlayState();
@@ -39,6 +40,12 @@ class _AlarmOverlayState extends State<AlarmOverlay> with SingleTickerProviderSt
     widget.onDismiss();
   }
 
+  void _disableAndDismiss() async {
+    await _controller.reverse();
+    widget.onDisableType?.call();
+    widget.onDismiss();
+  }
+
   @override
   Widget build(BuildContext context) {
     final color = widget.alarm.color;
@@ -68,35 +75,21 @@ class _AlarmOverlayState extends State<AlarmOverlay> with SingleTickerProviderSt
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Pulse icon
                     _PulsingIcon(icon: widget.alarm.icon, color: color),
                     const SizedBox(height: 20),
-
-                    // Title
                     Text(
                       widget.alarm.title,
-                      style: GoogleFonts.inter(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w800,
-                        color: AppTheme.textDark,
-                      ),
+                      style: GoogleFonts.inter(fontSize: 22, fontWeight: FontWeight.w800, color: AppTheme.textDark),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 10),
-
-                    // Message
                     Text(
                       widget.alarm.message,
-                      style: GoogleFonts.inter(
-                        fontSize: 15,
-                        color: AppTheme.textLight,
-                        height: 1.5,
-                      ),
+                      style: GoogleFonts.inter(fontSize: 15, color: AppTheme.textLight, height: 1.5),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 28),
-
-                    // Dismiss button
+                    // Tamam button
                     SizedBox(
                       width: double.infinity,
                       height: 52,
@@ -107,10 +100,26 @@ class _AlarmOverlayState extends State<AlarmOverlay> with SingleTickerProviderSt
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                           elevation: 0,
                         ),
-                        child: Text('Tamam',
-                            style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w700)),
+                        child: Text('Tamam', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w700)),
                       ),
                     ),
+                    const SizedBox(height: 10),
+                    // Disable button
+                    if (widget.onDisableType != null)
+                      SizedBox(
+                        width: double.infinity,
+                        height: 44,
+                        child: TextButton(
+                          onPressed: _disableAndDismiss,
+                          style: TextButton.styleFrom(
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          child: Text(
+                            'Bu hatırlatmayı kapat',
+                            style: GoogleFonts.inter(fontSize: 13, color: AppTheme.textLight, fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -137,10 +146,7 @@ class _PulsingIconState extends State<_PulsingIcon> with SingleTickerProviderSta
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1500),
-    )..repeat(reverse: true);
+    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 1500))..repeat(reverse: true);
   }
 
   @override
@@ -157,16 +163,9 @@ class _PulsingIconState extends State<_PulsingIcon> with SingleTickerProviderSta
         final scale = 1.0 + _controller.value * 0.08;
         final opacity = 0.15 + _controller.value * 0.15;
         return Container(
-          width: 90,
-          height: 90,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: widget.color.withValues(alpha: opacity),
-          ),
-          child: Transform.scale(
-            scale: scale,
-            child: child,
-          ),
+          width: 90, height: 90,
+          decoration: BoxDecoration(shape: BoxShape.circle, color: widget.color.withValues(alpha: opacity)),
+          child: Transform.scale(scale: scale, child: child),
         );
       },
       child: Icon(widget.icon, size: 44, color: widget.color),

@@ -87,6 +87,16 @@ class _MainShellState extends State<MainShell> {
                 AlarmService.instance.dismissAlarm();
                 setState(() => _activeAlarm = null);
               },
+              onDisableType: () async {
+                final type = _activeAlarm!.type;
+                final key = switch (type) {
+                  AlarmType.water => 'water',
+                  AlarmType.movement => 'movement',
+                  AlarmType.bloodPressure => 'bp',
+                };
+                await StorageService.instance.setReminderEnabled(key, false);
+                _initAlarms();
+              },
             ),
         ],
       ),

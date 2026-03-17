@@ -3,6 +3,8 @@ import 'dart:math' as math;
 import '../theme/app_theme.dart';
 import '../services/storage_service.dart';
 import '../services/health_connect_service.dart';
+import '../services/alarm_service.dart';
+import 'reminder_settings_screen.dart';
 
 class StepsScreen extends StatefulWidget {
   const StepsScreen({super.key});
@@ -62,6 +64,8 @@ class _StepsScreenState extends State<StepsScreen> {
     setState(() => _steps += value);
     _storage.setSteps(DateTime.now(), _steps);
     _controller.clear();
+    AlarmService.instance.reportSteps(_steps);
+    AlarmService.instance.reportActivity();
   }
 
   void _setSteps() async {
@@ -156,6 +160,11 @@ class _StepsScreenState extends State<StepsScreen> {
               },
               tooltip: 'Health Connect Senkronize',
             ),
+          IconButton(
+            icon: const Icon(Icons.notifications_active_rounded),
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ReminderSettingsScreen())),
+            tooltip: 'Hareket Hatırlatma Ayarları',
+          ),
           IconButton(
             icon: const Icon(Icons.flag),
             onPressed: _editGoal,

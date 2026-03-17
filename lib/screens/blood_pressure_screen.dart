@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../services/storage_service.dart';
 import '../models/health_data.dart';
+import 'reminder_settings_screen.dart';
 
 class BloodPressureScreen extends StatefulWidget {
   const BloodPressureScreen({super.key});
@@ -129,7 +130,16 @@ class _BloodPressureScreenState extends State<BloodPressureScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Tansiyon & Nabız')),
+      appBar: AppBar(
+        title: const Text('Tansiyon & Nabız'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.notifications_active_rounded),
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ReminderSettingsScreen())),
+            tooltip: 'Tansiyon Hatırlatma Ayarları',
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _addRecord,
         icon: const Icon(Icons.add),
