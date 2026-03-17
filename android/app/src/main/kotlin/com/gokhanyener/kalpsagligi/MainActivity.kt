@@ -1,4 +1,4 @@
-package com.kalpsagligi.kalp_sagligi
+package com.gokhanyener.kalpsagligi
 
 import io.flutter.embedding.android.FlutterActivity
 
