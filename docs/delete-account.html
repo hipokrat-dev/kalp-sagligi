@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hesap Silme - Kalp Sağlığı</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f8f9fd;
+            color: #1a1d26;
+            line-height: 1.7;
+        }
+        .header {
+            background: linear-gradient(135deg, #C0392B, #8B0000);
+            color: white;
+            padding: 60px 20px 40px;
+            text-align: center;
+        }
+        .header .icon { font-size: 48px; margin-bottom: 12px; }
+        .header h1 { font-size: 28px; font-weight: 800; margin-bottom: 4px; }
+        .header p { opacity: 0.85; font-size: 15px; }
+        .container {
+            max-width: 700px;
+            margin: -20px auto 40px;
+            padding: 0 20px;
+        }
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        }
+        h2 {
+            font-size: 20px;
+            font-weight: 700;
+            color: #C0392B;
+            margin: 28px 0 12px;
+            padding-left: 14px;
+            border-left: 4px solid #C0392B;
+        }
+        h2:first-of-type { margin-top: 0; }
+        p { margin-bottom: 12px; color: #333; font-size: 15px; }
+        ul { margin: 8px 0 16px 20px; color: #333; }
+        li { margin-bottom: 6px; font-size: 15px; }
+        .warning-box {
+            background: #fef2f2;
+            border-left: 4px solid #C0392B;
+            padding: 16px 18px;
+            border-radius: 0 10px 10px 0;
+            margin: 16px 0;
+            font-size: 14px;
+        }
+        .info-box {
+            background: #f0f7ff;
+            border-left: 4px solid #3b82f6;
+            padding: 16px 18px;
+            border-radius: 0 10px 10px 0;
+            margin: 16px 0;
+            font-size: 14px;
+        }
+        .email-btn {
+            display: inline-block;
+            background: linear-gradient(135deg, #C0392B, #8B0000);
+            color: white;
+            text-decoration: none;
+            padding: 14px 32px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 16px;
+            margin: 20px 0;
+            transition: opacity 0.2s;
+        }
+        .email-btn:hover { opacity: 0.9; }
+        .steps {
+            counter-reset: step;
+            list-style: none;
+            margin: 16px 0;
+            padding: 0;
+        }
+        .steps li {
+            counter-increment: step;
+            padding: 12px 0 12px 52px;
+            position: relative;
+            border-bottom: 1px solid #f0f1f5;
+        }
+        .steps li:last-child { border-bottom: none; }
+        .steps li::before {
+            content: counter(step);
+            position: absolute;
+            left: 0;
+            top: 12px;
+            width: 34px;
+            height: 34px;
+            background: linear-gradient(135deg, #C0392B, #8B0000);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 14px;
+            line-height: 34px;
+            text-align: center;
+        }
+        strong { color: #1a1d26; }
+        .template {
+            background: #f8f9fd;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 16px;
+            margin: 12px 0;
+            font-size: 14px;
+            color: #555;
+            line-height: 1.6;
+        }
+        .footer {
+            text-align: center;
+            padding: 30px 20px;
+            color: #8e92a4;
+            font-size: 13px;
+        }
+        .footer a { color: #C0392B; text-decoration: none; }
+        @media (max-width: 600px) {
+            .card { padding: 20px; }
+            .header { padding: 40px 16px 30px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div class="icon">❤️</div>
+    <h1>Hesap Silme Talebi</h1>
+    <p>Kalp Sağlığı Uygulaması</p>
+</div>
+
+<div class="container">
+    <div class="card">
+
+        <h2>Hesabınızı Silmek İstiyorsanız</h2>
+        <p>
+            Kalp Sağlığı uygulamasındaki hesabınızı ve tüm kişisel verilerinizi kalıcı olarak
+            silmek istiyorsanız, aşağıdaki e-posta adresine bir silme talebi gönderebilirsiniz.
+        </p>
+
+        <div style="text-align: center;">
+            <a href="mailto:dr.yener8167@gmail.com?subject=Kalp%20Sa%C4%9Fl%C4%B1%C4%9F%C4%B1%20Hesap%20Silme%20Talebi&body=Merhaba%2C%0A%0AKalp%20Sa%C4%9Fl%C4%B1%C4%9F%C4%B1%20uygulamas%C4%B1ndaki%20hesab%C4%B1m%C4%B1n%20ve%20t%C3%BCm%20verilerimin%20silinmesini%20talep%20ediyorum.%0A%0AKay%C4%B1tl%C4%B1%20e-posta%20adresim%3A%20%5BBuraya%20yaz%C4%B1n%5D%0A%0ATeşekkürler." class="email-btn">
+                📧 Hesap Silme Talebi Gönder
+            </a>
+        </div>
+
+        <p style="text-align: center; color: #8e92a4; font-size: 13px;">
+            dr.yener8167@gmail.com
+        </p>
+
+        <h2>Nasıl Yapılır?</h2>
+        <ol class="steps">
+            <li>
+                <strong>E-posta gönderin</strong><br>
+                Yukarıdaki butona tıklayarak veya doğrudan
+                <strong>dr.yener8167@gmail.com</strong> adresine e-posta gönderin.
+            </li>
+            <li>
+                <strong>Kayıtlı e-postanızı belirtin</strong><br>
+                Uygulamada kayıt olurken kullandığınız e-posta adresini e-postanızda belirtin.
+            </li>
+            <li>
+                <strong>Talebiniz işleme alınır</strong><br>
+                Talebiniz en geç <strong>7 iş günü</strong> içinde işleme alınacak ve sonuçlandığında
+                bilgilendirileceksiniz.
+            </li>
+            <li>
+                <strong>Hesabınız ve verileriniz silinir</strong><br>
+                Tüm kişisel verileriniz kalıcı olarak sistemlerimizden kaldırılır.
+            </li>
+        </ol>
+
+        <h2>E-posta Şablonu</h2>
+        <p>Aşağıdaki şablonu kullanabilirsiniz:</p>
+        <div class="template">
+            <strong>Konu:</strong> Kalp Sağlığı Hesap Silme Talebi<br><br>
+            Merhaba,<br><br>
+            Kalp Sağlığı uygulamasındaki hesabımın ve tüm verilerimin silinmesini talep ediyorum.<br><br>
+            Kayıtlı e-posta adresim: [buraya yazın]<br><br>
+            Teşekkürler.
+        </div>
+
+        <h2>Silinen Veriler</h2>
+        <p>Hesabınız silindiğinde aşağıdaki tüm veriler kalıcı olarak kaldırılır:</p>
+        <ul>
+            <li>Hesap bilgileri (e-posta, ad soyad)</li>
+            <li>Sağlık verileri (adım, su, tansiyon, nabız kayıtları)</li>
+            <li>Sigara bırakma verileri</li>
+            <li>Risk değerlendirmesi verileri</li>
+            <li>Duygu durumu kayıtları</li>
+            <li>Beslenme ve kalori kayıtları</li>
+            <li>VKİ ve kilo hedefi verileri</li>
+            <li>Arkadaş listesi ve challenge verileri</li>
+            <li>Hatırlatma ayarları ve tercihleri</li>
+        </ul>
+
+        <div class="warning-box">
+            <strong>⚠️ Dikkat:</strong> Hesap silme işlemi geri alınamaz. Tüm verileriniz kalıcı olarak
+            silinecektir. Silme işlemi tamamlandıktan sonra verilerinize erişim mümkün olmayacaktır.
+        </div>
+
+        <div class="info-box">
+            <strong>ℹ️ Alternatif:</strong> Hesabınızı silmek yerine yalnızca verilerinizi sıfırlamak
+            istiyorsanız, bunu e-postanızda belirtebilirsiniz.
+        </div>
+
+        <h2>İletişim</h2>
+        <p>Sorularınız için bizimle iletişime geçebilirsiniz:</p>
+        <ul>
+            <li><strong>E-posta:</strong> dr.yener8167@gmail.com</li>
+            <li><strong>Geliştirici:</strong> Dr. Gökhan</li>
+        </ul>
+
+    </div>
+</div>
+
+<div class="footer">
+    <p>© 2026 Kalp Sağlığı. Tüm hakları saklıdır.</p>
+    <p style="margin-top: 8px;">
+        <a href="privacy-policy.html">Gizlilik Politikası</a> ·
+        <a href="https://github.com/hipokrat-dev/kalp-sagligi">GitHub</a>
+    </p>
+</div>
+
+</body>
+</html>
