@@ -219,18 +219,21 @@ class _DailyReportScreenState extends State<DailyReportScreen> with SingleTicker
                                   color: _scoreColor,
                                 ),
                                 child: Center(
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Text('$_dailyScore',
-                                          style: GoogleFonts.inter(fontSize: 44, fontWeight: FontWeight.w800, color: _scoreColor)),
-                                      Text(_scoreLabel,
-                                          style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: _scoreColor)),
-                                    ],
-                                  ),
+                                  child: Text('$_dailyScore',
+                                      style: GoogleFonts.inter(fontSize: 48, fontWeight: FontWeight.w800, color: _scoreColor)),
                                 ),
                               ),
                             ),
+                          ),
+                          const SizedBox(height: 10),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: _scoreColor.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(_scoreLabel,
+                                style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: _scoreColor)),
                           ),
                         ],
                       ),
@@ -259,18 +262,20 @@ class _DailyReportScreenState extends State<DailyReportScreen> with SingleTicker
                         Expanded(child: _buildMiniCard(
                           Icons.bedtime_rounded, const Color(0xFF5C6BC0),
                           'Uyku',
-                          _sleepQuality != null ? '${_sleepHours.toStringAsFixed(1)} sa' : '—',
-                          _sleepQuality != null ? '${_sleepEmojis[_sleepQuality!]} ${_sleepLabels[_sleepQuality!]}' : 'Kayıt yok',
-                          (_sleepHours / 8).clamp(0.0, 1.0),
+                          _sleepQuality != null ? '${_sleepHours.toStringAsFixed(1)} sa' : 'Veri yok',
+                          _sleepQuality != null ? '${_sleepEmojis[_sleepQuality!]} ${_sleepLabels[_sleepQuality!]}' : 'Henüz veri girilmedi',
+                          _sleepQuality != null ? (_sleepHours / 8).clamp(0.0, 1.0) : 0,
                         )),
                         const SizedBox(width: 12),
                         Expanded(child: _buildMiniCard(
                           Icons.monitor_weight_rounded, const Color(0xFF26A69A),
                           'Kilo',
-                          _weight > 0 ? '${_weight.toStringAsFixed(0)} kg' : '—',
-                          _targetWeight > 0 && _weight > 0
-                              ? 'Hedef: ${_targetWeight.toStringAsFixed(0)} kg  (${(_weight - _targetWeight) > 0 ? '-' : '+'}${(_weight - _targetWeight).abs().toStringAsFixed(1)})'
-                              : 'Hedef girilmedi',
+                          _weight > 0 ? '${_weight.toStringAsFixed(0)} kg' : 'Veri yok',
+                          _weight > 0
+                              ? (_targetWeight > 0
+                                  ? 'Hedef: ${_targetWeight.toStringAsFixed(0)} kg  (${(_weight - _targetWeight) > 0 ? '-' : '+'}${(_weight - _targetWeight).abs().toStringAsFixed(1)})'
+                                  : '${_height.toStringAsFixed(0)} cm')
+                              : 'Henüz veri girilmedi',
                           0,
                         )),
                       ],
