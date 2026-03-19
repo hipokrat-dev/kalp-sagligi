@@ -83,10 +83,15 @@ class _SmokingScreenState extends State<SmokingScreen> {
     if (result == true) {
       final count = int.tryParse(countController.text) ?? 20;
       final price = double.tryParse(priceController.text) ?? 60.0;
-      await _storage.setSmokingQuitDate(DateTime.now());
-      await _storage.setDailySmokingCount(count);
-      await _storage.setPackPrice(price);
-      _loadData();
+      final now = DateTime.now();
+      setState(() {
+        _quitDate = now;
+        _dailyCount = count;
+        _packPrice = price;
+      });
+      _storage.setSmokingQuitDate(now);
+      _storage.setDailySmokingCount(count);
+      _storage.setPackPrice(price);
     }
   }
 
@@ -108,8 +113,8 @@ class _SmokingScreenState extends State<SmokingScreen> {
       ),
     );
     if (confirm == true) {
-      await _storage.clearSmokingQuitDate();
-      _loadData();
+      setState(() => _quitDate = null);
+      _storage.clearSmokingQuitDate();
     }
   }
 
