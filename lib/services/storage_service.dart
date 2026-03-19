@@ -227,11 +227,18 @@ class StorageService {
   }
 
   Future<void> clearSmokingQuitDate() async {
-    await _updateUserSettings({'smokingQuitDate': FieldValue.delete()});
+    // Update local cache first
     await _ensureInitialized();
     final current = await _getUserSettings();
     current.remove('smokingQuitDate');
     _prefs.setString('cache_settings', jsonEncode(current));
+
+    // Delete from Firestore
+    try {
+      await _userDoc?.collection('settings').doc('prefs').update({
+        'smokingQuitDate': FieldValue.delete(),
+      });
+    } catch (_) {}
   }
 
   Future<int> getDailySmokingCount() async {
