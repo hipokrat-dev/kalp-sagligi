@@ -33,6 +33,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   double _targetWeight = 0;
   int? _todayMood;
   Map<String, int> _moodHistory = {};
+  int? _sleepQuality;
+  double _sleepHours = 0;
 
   @override
   void initState() {
@@ -59,6 +61,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     final targetWeight = await _storage.getTargetWeight();
     final todayMood = await _storage.getMood(now);
     final moodHistory = await _storage.getMoodHistory(7);
+    final sleepData = await _storage.getSleep(now);
 
     if (mounted) {
       setState(() {
@@ -72,6 +75,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         _targetWeight = targetWeight;
         _todayMood = todayMood;
         _moodHistory = moodHistory;
+        _sleepQuality = sleepData?['quality'] as int?;
+        _sleepHours = (sleepData?['hours'] as num?)?.toDouble() ?? 0;
       });
       _fadeController.forward(from: 0);
     }
@@ -252,14 +257,14 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 ),
                 const SizedBox(height: 16),
 
-                // ── Grid Cards (2x2) ──
+                // ── Grid Cards (3x2) ──
                 GridView.count(
                   crossAxisCount: 2,
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   crossAxisSpacing: 14,
                   mainAxisSpacing: 14,
-                  childAspectRatio: 1.0,
+                  childAspectRatio: 1.1,
                   children: [
                     // Adımlar
                     _GridCard(
@@ -300,31 +305,32 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                       targetWeight: _targetWeight,
                       onTap: _showWeightDialog,
                     ),
+                    // Uyku
+                    _SleepCard(
+                      quality: _sleepQuality,
+                      hours: _sleepHours,
+                      onTap: _showSleepDialog,
+                    ),
+                    // Tansiyon hızlı erişim (grid kart olarak)
+                    _GridCard(
+                      gradient: AppTheme.primaryGradient2,
+                      icon: Icons.monitor_heart_rounded,
+                      title: 'Tansiyon',
+                      value: 'Kaydet',
+                      subtitle: 'ölçüm ekle',
+                      progress: 0,
+                      onTap: () => _navigateAndRefresh(const BloodPressureScreen()),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 14),
 
-                // Quick access cards
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildQuickAccess(
-                        icon: Icons.monitor_heart_rounded,
-                        label: 'Tansiyon',
-                        gradient: AppTheme.primaryGradient2,
-                        onTap: () => _navigateAndRefresh(const BloodPressureScreen()),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildQuickAccess(
-                        icon: Icons.emoji_events_rounded,
-                        label: 'Challenge',
-                        gradient: AppTheme.orangeGradient,
-                        onTap: () => _navigateAndRefresh(const ChallengesScreen()),
-                      ),
-                    ),
-                  ],
+                // Quick access
+                _buildQuickAccess(
+                  icon: Icons.emoji_events_rounded,
+                  label: 'Challenge Yarışmaları',
+                  gradient: const LinearGradient(colors: [Color(0xFF7E57C2), Color(0xFFB39DDB)]),
+                  onTap: () => _navigateAndRefresh(const ChallengesScreen()),
                 ),
                 const SizedBox(height: 16),
               ],
@@ -338,6 +344,99 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   String _formatNumber(int n) {
     if (n >= 1000) return '${(n / 1000).toStringAsFixed(1)}k';
     return n.toString();
+  }
+
+  void _showSleepDialog() async {
+    int selectedQuality = _sleepQuality ?? 2;
+    double selectedHours = _sleepHours > 0 ? _sleepHours : 7;
+    const sleepEmojis = ['😴', '😞', '😐', '😊', '🌟'];
+    const sleepLabels = ['Çok Kötü', 'Kötü', 'Orta', 'İyi', 'Mükemmel'];
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+          title: Text('Dün Gece Uyku', style: GoogleFonts.inter(fontWeight: FontWeight.w800)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Uyku kalitenizi değerlendirin',
+                  style: GoogleFonts.inter(fontSize: 13, color: AppTheme.textLight)),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: List.generate(5, (i) {
+                  final selected = selectedQuality == i;
+                  return GestureDetector(
+                    onTap: () => setDState(() => selectedQuality = i),
+                    child: Column(
+                      children: [
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          width: 48, height: 48,
+                          decoration: BoxDecoration(
+                            color: selected
+                                ? const Color(0xFF5C6BC0).withValues(alpha: 0.15)
+                                : AppTheme.inputFill,
+                            borderRadius: BorderRadius.circular(14),
+                            border: selected ? Border.all(color: const Color(0xFF5C6BC0), width: 2) : null,
+                          ),
+                          child: Center(child: Text(sleepEmojis[i], style: const TextStyle(fontSize: 22))),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(sleepLabels[i],
+                            style: GoogleFonts.inter(
+                              fontSize: 9,
+                              fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                              color: selected ? const Color(0xFF5C6BC0) : AppTheme.textLight,
+                            )),
+                      ],
+                    ),
+                  );
+                }),
+              ),
+              const SizedBox(height: 20),
+              Text('Uyku süresi: ${selectedHours.toStringAsFixed(1)} saat',
+                  style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 15)),
+              const SizedBox(height: 8),
+              Slider(
+                value: selectedHours,
+                min: 0, max: 14,
+                divisions: 28,
+                activeColor: const Color(0xFF5C6BC0),
+                onChanged: (v) => setDState(() => selectedHours = v),
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('0 sa', style: GoogleFonts.inter(fontSize: 11, color: AppTheme.textLight)),
+                  Text('14 sa', style: GoogleFonts.inter(fontSize: 11, color: AppTheme.textLight)),
+                ],
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text('İptal', style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text('Kaydet', style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (result == true) {
+      setState(() {
+        _sleepQuality = selectedQuality;
+        _sleepHours = selectedHours;
+      });
+      await _storage.setSleep(DateTime.now(), selectedQuality, selectedHours);
+    }
   }
 
   Widget _buildQuickAccess({
@@ -611,6 +710,100 @@ class _BmiWeightCard extends StatelessWidget {
 }
 
 // ── Mood Card ──
+
+// ── Sleep Card ──
+
+class _SleepCard extends StatelessWidget {
+  final int? quality;
+  final double hours;
+  final VoidCallback onTap;
+
+  const _SleepCard({required this.quality, required this.hours, required this.onTap});
+
+  static const _emojis = ['😴', '😞', '😐', '😊', '🌟'];
+  static const _labels = ['Çok Kötü', 'Kötü', 'Orta', 'İyi', 'Mükemmel'];
+  static const _gradient = LinearGradient(
+    colors: [Color(0xFF5C6BC0), Color(0xFF9FA8DA)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    final hasData = quality != null;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: _gradient,
+          borderRadius: BorderRadius.circular(22),
+          boxShadow: AppTheme.softShadow(const Color(0xFF5C6BC0)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 38, height: 38,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.22),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.bedtime_rounded, color: Colors.white, size: 20),
+            ),
+            const Spacer(),
+            if (hasData) ...[
+              Text('Uyku',
+                  style: GoogleFonts.inter(color: Colors.white.withValues(alpha: 0.8), fontSize: 12, fontWeight: FontWeight.w600)),
+              Row(
+                children: [
+                  Text(_emojis[quality!], style: const TextStyle(fontSize: 20)),
+                  const SizedBox(width: 6),
+                  Flexible(
+                    child: Text('${hours.toStringAsFixed(1)} sa',
+                        style: GoogleFonts.inter(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800),
+                        overflow: TextOverflow.ellipsis),
+                  ),
+                ],
+              ),
+              Text(_labels[quality!],
+                  style: GoogleFonts.inter(color: Colors.white.withValues(alpha: 0.7), fontSize: 11),
+                  overflow: TextOverflow.ellipsis, maxLines: 1),
+              const SizedBox(height: 8),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  value: (hours / 8).clamp(0.0, 1.0),
+                  backgroundColor: Colors.white.withValues(alpha: 0.2),
+                  valueColor: const AlwaysStoppedAnimation(Colors.white),
+                  minHeight: 5,
+                ),
+              ),
+            ] else ...[
+              Text('Uyku',
+                  style: GoogleFonts.inter(color: Colors.white.withValues(alpha: 0.8), fontSize: 12, fontWeight: FontWeight.w600)),
+              Text('Kaydet',
+                  style: GoogleFonts.inter(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800)),
+              Text('uyku kalitesi',
+                  style: GoogleFonts.inter(color: Colors.white.withValues(alpha: 0.7), fontSize: 11)),
+              const SizedBox(height: 8),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: const LinearProgressIndicator(
+                  value: 0,
+                  backgroundColor: Colors.white24,
+                  valueColor: AlwaysStoppedAnimation(Colors.white),
+                  minHeight: 5,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 class _MoodCard extends StatefulWidget {
   final int? todayMood;

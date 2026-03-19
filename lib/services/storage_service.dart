@@ -290,6 +290,30 @@ class StorageService {
     await _updateUserSettings({'targetWeight': weight});
   }
 
+  // ── Sleep ──
+
+  Future<Map<String, dynamic>?> getSleep(DateTime date) async {
+    final data = await _getDailyData(date);
+    final quality = data['sleepQuality'] as int?;
+    final hours = (data['sleepHours'] as num?)?.toDouble();
+    if (quality == null) return null;
+    return {'quality': quality, 'hours': hours ?? 0.0};
+  }
+
+  Future<void> setSleep(DateTime date, int quality, double hours) async {
+    await _updateDailyData(date, {'sleepQuality': quality, 'sleepHours': hours});
+  }
+
+  Future<Map<String, Map<String, dynamic>>> getSleepHistory(int days) async {
+    final map = <String, Map<String, dynamic>>{};
+    for (int i = 0; i < days; i++) {
+      final date = DateTime.now().subtract(Duration(days: i));
+      final sleep = await getSleep(date);
+      if (sleep != null) map[_dateKey(date)] = sleep;
+    }
+    return map;
+  }
+
   // ── Reminder settings ──
 
   Future<int> getReminderInterval(String type) async {
