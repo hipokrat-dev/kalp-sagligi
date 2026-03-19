@@ -22,9 +22,9 @@ class _RiskScreenState extends State<RiskScreen> with SingleTickerProviderStateM
   // Checklist items
   bool _regularExercise = false;
   bool _balancedDiet = false;
-  bool _noSmoking = true;
-  bool _noAlcohol = true;
-  bool _stressManagement = false;
+  bool _smoking = false;
+  bool _alcohol = false;
+  int _stressLevel = 0; // 0=Düşük, 1=Orta, 2=Yüksek
   bool _goodSleep = false;
   bool _regularCheckup = false;
   // Medical risks
@@ -67,11 +67,11 @@ class _RiskScreenState extends State<RiskScreen> with SingleTickerProviderStateM
         _hypertensionMed = data['hypertensionMed'] ?? false;
         _diabetesMed = data['diabetesMed'] ?? false;
         _hyperlipidemiaMed = data['hyperlipidemiaMed'] ?? false;
-        _noSmoking = !(data['smoking'] ?? false);
+        _smoking = data['smoking'] ?? false;
         _regularExercise = !(data['inactivity'] ?? true);
         _balancedDiet = data['balancedDiet'] ?? false;
-        _noAlcohol = data['noAlcohol'] ?? true;
-        _stressManagement = data['stressManagement'] ?? false;
+        _alcohol = data['alcohol'] ?? false;
+        _stressLevel = data['stressLevel'] ?? 0;
         _goodSleep = data['goodSleep'] ?? false;
         _regularCheckup = data['regularCheckup'] ?? false;
         _height = (data['height'] ?? 0.0).toDouble();
@@ -86,7 +86,7 @@ class _RiskScreenState extends State<RiskScreen> with SingleTickerProviderStateM
   Future<void> _saveData() async {
     await _storage.saveRiskChecklist({
       'familyHistory': _familyHistory,
-      'smoking': !_noSmoking,
+      'smoking': _smoking,
       'hypertension': _hypertension,
       'hyperlipidemia': _hyperlipidemia,
       'diabetes': _diabetes,
@@ -95,8 +95,8 @@ class _RiskScreenState extends State<RiskScreen> with SingleTickerProviderStateM
       'hyperlipidemiaMed': _hyperlipidemiaMed,
       'inactivity': !_regularExercise,
       'balancedDiet': _balancedDiet,
-      'noAlcohol': _noAlcohol,
-      'stressManagement': _stressManagement,
+      'alcohol': _alcohol,
+      'stressLevel': _stressLevel,
       'goodSleep': _goodSleep,
       'regularCheckup': _regularCheckup,
       'height': _height,
@@ -140,11 +140,12 @@ class _RiskScreenState extends State<RiskScreen> with SingleTickerProviderStateM
     if (_hypertension) score += 12;
     if (_diabetes) score += 12;
     if (_hyperlipidemia) score += 10;
-    if (!_noSmoking) score += 15;
-    if (!_noAlcohol) score += 5;
+    if (_smoking) score += 15;
+    if (_alcohol) score += 5;
     if (!_regularExercise) score += 10;
     if (!_balancedDiet) score += 5;
-    if (!_stressManagement) score += 5;
+    if (_stressLevel == 1) score += 3;
+    if (_stressLevel == 2) score += 8;
     if (!_goodSleep) score += 5;
     if (!_regularCheckup) score += 3;
     // BMI
@@ -171,9 +172,9 @@ class _RiskScreenState extends State<RiskScreen> with SingleTickerProviderStateM
     int c = 0;
     if (_regularExercise) c++;
     if (_balancedDiet) c++;
-    if (_noSmoking) c++;
-    if (_noAlcohol) c++;
-    if (_stressManagement) c++;
+    if (!_smoking) c++;
+    if (!_alcohol) c++;
+    if (_stressLevel == 0) c++;
     if (_goodSleep) c++;
     if (_regularCheckup) c++;
     return c;
@@ -291,12 +292,12 @@ class _RiskScreenState extends State<RiskScreen> with SingleTickerProviderStateM
               (v) { setState(() => _regularExercise = v); _saveData(); }),
           _checkItem(Icons.restaurant_rounded, const Color(0xFF4CAF50), 'Dengeli Beslenme', 'Sebze, meyve ağırlıklı beslenme', _balancedDiet,
               (v) { setState(() => _balancedDiet = v); _saveData(); }),
-          _checkItem(Icons.smoke_free_rounded, const Color(0xFF26A69A), 'Sigara Kullanmıyorum', 'Sigara kalp hastalığı riskini 2-4x artırır', _noSmoking,
-              (v) { setState(() => _noSmoking = v); _saveData(); }),
-          _checkItem(Icons.no_drinks_rounded, const Color(0xFF7E57C2), 'Alkol Kullanmıyorum', 'Alkol kan basıncını yükseltir', _noAlcohol,
-              (v) { setState(() => _noAlcohol = v); _saveData(); }),
-          _checkItem(Icons.self_improvement_rounded, const Color(0xFF42A5F5), 'Stres Yönetimi', 'Meditasyon, nefes egzersizi, yoga', _stressManagement,
-              (v) { setState(() => _stressManagement = v); _saveData(); }),
+          _checkItem(Icons.smoking_rooms_rounded, const Color(0xFFE53935), 'Sigara İçiyorum', 'Sigara kalp hastalığı riskini 2-4x artırır', _smoking,
+              (v) { setState(() => _smoking = v); _saveData(); }),
+          _checkItem(Icons.local_bar_rounded, const Color(0xFF7E57C2), 'Alkol İçiyorum', 'Alkol kan basıncını yükseltir', _alcohol,
+              (v) { setState(() => _alcohol = v); _saveData(); }),
+          // Stres seviyesi
+          _buildStressSelector(),
           _checkItem(Icons.bedtime_rounded, const Color(0xFF5C6BC0), 'Kaliteli Uyku', 'Her gece 7-8 saat uyku', _goodSleep,
               (v) { setState(() => _goodSleep = v); _saveData(); }),
           _checkItem(Icons.medical_services_rounded, const Color(0xFFE53935), 'Düzenli Check-up', 'Yılda en az 1 kez sağlık kontrolü', _regularCheckup,
@@ -351,6 +352,73 @@ class _RiskScreenState extends State<RiskScreen> with SingleTickerProviderStateM
                 style: GoogleFonts.inter(fontSize: 11, color: AppTheme.textLight, fontStyle: FontStyle.italic)),
           ),
           const SizedBox(height: 20),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStressSelector() {
+    const colors = [Color(0xFF4CAF50), Color(0xFFFF9800), Color(0xFFE53935)];
+    const labels = ['Düşük', 'Orta', 'Yüksek'];
+    const icons = [Icons.sentiment_satisfied_rounded, Icons.sentiment_neutral_rounded, Icons.sentiment_very_dissatisfied_rounded];
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: AppTheme.cardShadow,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 38, height: 38,
+                decoration: BoxDecoration(
+                  color: colors[_stressLevel].withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(Icons.psychology_rounded, color: colors[_stressLevel], size: 20),
+              ),
+              const SizedBox(width: 12),
+              Text('Stres Seviyesi', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 14, color: AppTheme.textDark)),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: List.generate(3, (i) {
+              final selected = _stressLevel == i;
+              return Expanded(
+                child: GestureDetector(
+                  onTap: () { setState(() => _stressLevel = i); _saveData(); },
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    margin: EdgeInsets.only(left: i > 0 ? 8 : 0),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    decoration: BoxDecoration(
+                      color: selected ? colors[i].withValues(alpha: 0.12) : AppTheme.inputFill,
+                      borderRadius: BorderRadius.circular(12),
+                      border: selected ? Border.all(color: colors[i], width: 2) : null,
+                    ),
+                    child: Column(
+                      children: [
+                        Icon(icons[i], color: selected ? colors[i] : AppTheme.textLight, size: 24),
+                        const SizedBox(height: 4),
+                        Text(labels[i], style: GoogleFonts.inter(
+                          fontSize: 12,
+                          fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                          color: selected ? colors[i] : AppTheme.textLight,
+                        )),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }),
+          ),
         ],
       ),
     );
