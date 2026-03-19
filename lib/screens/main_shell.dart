@@ -8,7 +8,7 @@ import '../services/challenge_service.dart';
 import '../services/auth_service.dart';
 import '../widgets/alarm_overlay.dart';
 import 'home_screen.dart';
-import 'friends_screen.dart';
+import 'daily_report_screen.dart';
 import 'info_screen.dart';
 import 'settings_screen.dart';
 
@@ -30,7 +30,7 @@ class _MainShellState extends State<MainShell> {
 
   final _screens = const [
     HomeScreen(),
-    FriendsScreen(),
+    DailyReportScreen(),
     InfoScreen(),
     SettingsScreen(),
   ];
@@ -198,8 +198,7 @@ class _MainShellState extends State<MainShell> {
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 _buildNavItem(0, Icons.home_rounded, Icons.home_outlined, 'Ana Sayfa'),
-                _buildNavItem(1, Icons.people_rounded, Icons.people_outlined, 'Sosyal',
-                    badgeCount: _pendingFriendRequests + _activeChallengeCount),
+                _buildNavItem(1, Icons.assessment_rounded, Icons.assessment_outlined, 'Rapor'),
                 _buildNavItem(2, Icons.auto_stories_rounded, Icons.auto_stories_outlined, 'Bilgi'),
                 _buildNavItem(3, Icons.person_rounded, Icons.person_outline_rounded, 'Profil'),
               ],

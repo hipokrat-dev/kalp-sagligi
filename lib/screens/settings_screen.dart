@@ -8,6 +8,8 @@ import 'login_screen.dart';
 import 'reminder_settings_screen.dart';
 import 'risk_screen.dart';
 import 'blood_pressure_screen.dart';
+import 'friends_screen.dart';
+import 'challenges_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -316,6 +318,38 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   title: 'Sifre Degistir',
                   subtitle: 'Hesap sifrenizi guncelleyin',
                   onTap: _changePassword,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Social
+          Text('SOSYAL', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.textLight, letterSpacing: 1)),
+          const SizedBox(height: 12),
+
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+              boxShadow: AppTheme.cardShadow,
+            ),
+            child: Column(
+              children: [
+                _buildSettingTile(
+                  icon: Icons.people_rounded,
+                  iconColor: const Color(0xFF42A5F5),
+                  title: 'Arkadaslar',
+                  subtitle: 'Arkadas ekle ve saglik verilerini paylas',
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FriendsScreen())),
+                ),
+                const Divider(height: 1, indent: 60),
+                _buildSettingTile(
+                  icon: Icons.emoji_events_rounded,
+                  iconColor: const Color(0xFFFF9800),
+                  title: 'Challenge Yarismalari',
+                  subtitle: 'Arkadaslarinla saglik yarismasi olustur',
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ChallengesScreen())),
                 ),
               ],
             ),
