@@ -210,7 +210,7 @@ class _DailyReportScreenState extends State<DailyReportScreen> with SingleTicker
                           Text('GÜNLÜK SAĞLIK SKORU', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.textLight, letterSpacing: 1)),
                           const SizedBox(height: 16),
                           SizedBox(
-                            width: 160, height: 160,
+                            width: 130, height: 130,
                             child: AnimatedBuilder(
                               animation: _scoreValue,
                               builder: (_, __) => CustomPaint(
@@ -220,7 +220,7 @@ class _DailyReportScreenState extends State<DailyReportScreen> with SingleTicker
                                 ),
                                 child: Center(
                                   child: Text('$_dailyScore',
-                                      style: GoogleFonts.inter(fontSize: 48, fontWeight: FontWeight.w800, color: _scoreColor)),
+                                      style: GoogleFonts.inter(fontSize: 36, fontWeight: FontWeight.w800, color: _scoreColor)),
                                 ),
                               ),
                             ),
@@ -238,7 +238,39 @@ class _DailyReportScreenState extends State<DailyReportScreen> with SingleTicker
                         ],
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
+
+                    // ── Mood ──
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+                        boxShadow: AppTheme.cardShadow,
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 40, height: 40,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFF6B6B).withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Center(
+                              child: Text(_mood != null ? _moodEmojis[_mood!] : '😐', style: const TextStyle(fontSize: 20)),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Text('Günlük Mod', style: GoogleFonts.inter(fontSize: 13, color: AppTheme.textLight, fontWeight: FontWeight.w600)),
+                          const Spacer(),
+                          Text(
+                            _mood != null ? _moodLabels[_mood!] : 'Kayıt yok',
+                            style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w700, color: AppTheme.textDark),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
 
                     // ── 2x2 Grid ──
                     Row(
@@ -326,44 +358,6 @@ class _DailyReportScreenState extends State<DailyReportScreen> with SingleTicker
                       ),
                     ),
                     const SizedBox(height: 16),
-
-                    // ── Mood ──
-                    Container(
-                      padding: const EdgeInsets.all(18),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(AppTheme.cardRadius),
-                        boxShadow: AppTheme.cardShadow,
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 44, height: 44,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFFF6B6B).withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            child: Center(
-                              child: Text(_mood != null ? _moodEmojis[_mood!] : '😐', style: const TextStyle(fontSize: 22)),
-                            ),
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('Günlük Mod', style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textLight, fontWeight: FontWeight.w600)),
-                                Text(
-                                  _mood != null ? _moodLabels[_mood!] : 'Kayıt yok',
-                                  style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w800, color: AppTheme.textDark),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
                   ],
                 ),
               ),
@@ -429,7 +423,7 @@ class _DailyReportScreenState extends State<DailyReportScreen> with SingleTicker
             ],
           ),
           const SizedBox(height: 10),
-          Text(value, style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.w800, color: AppTheme.textDark)),
+          Text(value, style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w800, color: AppTheme.textDark)),
           const SizedBox(height: 2),
           Text(subtitle, style: GoogleFonts.inter(fontSize: 11, color: AppTheme.textLight, fontWeight: FontWeight.w500),
               maxLines: 1, overflow: TextOverflow.ellipsis),
