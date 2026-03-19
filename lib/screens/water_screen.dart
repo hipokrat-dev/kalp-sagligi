@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'dart:math' as math;
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
 import '../services/storage_service.dart';
@@ -14,65 +13,61 @@ class WaterScreen extends StatefulWidget {
 
 class _WaterScreenState extends State<WaterScreen> with SingleTickerProviderStateMixin {
   final _storage = StorageService.instance;
-  late AnimationController _progressController;
-  late Animation<double> _progressAnim;
-  int _glasses = 0;
-  int _goalMl = 3500;
-  final int _glassSize = 250;
+  late AnimationController _animController;
+  late Animation<double> _fillAnim;
+  int _totalMl = 0;
+  int _goalMl = 2500;
+  bool _remindersEnabled = true;
 
   @override
   void initState() {
     super.initState();
-    _progressController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1000),
-    );
-    _progressAnim = Tween<double>(begin: 0, end: 0).animate(
-      CurvedAnimation(parent: _progressController, curve: Curves.easeOutCubic),
-    );
+    _animController = AnimationController(vsync: this, duration: const Duration(milliseconds: 800));
+    _fillAnim = Tween<double>(begin: 0, end: 0).animate(
+        CurvedAnimation(parent: _animController, curve: Curves.easeOutCubic));
     _loadData();
   }
 
   @override
   void dispose() {
-    _progressController.dispose();
+    _animController.dispose();
     super.dispose();
   }
 
-  int get _goal => (_goalMl / _glassSize).ceil();
-  int get _currentMl => _glasses * _glassSize;
+  int get _remainingMl => (_goalMl - _totalMl).clamp(0, 99999);
+  double get _fillRatio => (_totalMl / _goalMl).clamp(0.0, 1.0);
 
-  void _animateProgress() {
-    final target = (_glasses / _goal).clamp(0.0, 1.0);
-    _progressAnim = Tween<double>(begin: _progressAnim.value, end: target).animate(
-      CurvedAnimation(parent: _progressController, curve: Curves.easeOutCubic),
-    );
-    _progressController.forward(from: 0);
+  void _animateFill() {
+    _fillAnim = Tween<double>(begin: _fillAnim.value, end: _fillRatio)
+        .animate(CurvedAnimation(parent: _animController, curve: Curves.easeOutCubic));
+    _animController.forward(from: 0);
   }
 
   Future<void> _loadData() async {
     final glasses = await _storage.getWaterGlasses(DateTime.now());
-    final goal = await _storage.getWaterGoal();
+    final goalGlasses = await _storage.getWaterGoal();
+    final enabled = await _storage.getReminderEnabled('water');
     if (mounted) {
       setState(() {
-        _glasses = glasses;
-        _goalMl = goal * _glassSize;
+        _totalMl = glasses * 250;
+        _goalMl = goalGlasses * 250;
+        _remindersEnabled = enabled;
       });
-      _animateProgress();
+      _animateFill();
     }
   }
 
-  void _addGlass() {
-    setState(() => _glasses++);
-    _storage.setWaterGlasses(DateTime.now(), _glasses);
-    _animateProgress();
+  void _addWater(int ml) {
+    setState(() => _totalMl += ml);
+    _storage.setWaterGlasses(DateTime.now(), (_totalMl / 250).ceil());
+    _animateFill();
   }
 
-  void _removeGlass() {
-    if (_glasses > 0) {
-      setState(() => _glasses--);
-      _storage.setWaterGlasses(DateTime.now(), _glasses);
-      _animateProgress();
+  void _removeWater() {
+    if (_totalMl >= 200) {
+      setState(() => _totalMl -= 200);
+      _storage.setWaterGlasses(DateTime.now(), (_totalMl / 250).ceil());
+      _animateFill();
     }
   }
 
@@ -81,45 +76,32 @@ class _WaterScreenState extends State<WaterScreen> with SingleTickerProviderStat
     final result = await showDialog<int>(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.cardRadius)),
-        title: Text('Gunluk Su Hedefi', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+        title: Text('Günlük Su Hedefi', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
               controller: controller,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'Hedef',
-                suffixText: 'ml',
-                prefixIcon: Icon(Icons.water_drop),
-              ),
+              style: GoogleFonts.inter(fontWeight: FontWeight.w500),
+              decoration: const InputDecoration(labelText: 'Hedef', suffixText: 'ml', prefixIcon: Icon(Icons.water_drop)),
             ),
             const SizedBox(height: 12),
             Wrap(
               spacing: 8,
-              children: [2000, 2500, 3000, 3500, 4000].map((ml) {
-                return ActionChip(
-                  label: Text('$ml ml', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w500)),
-                  onPressed: () => controller.text = ml.toString(),
-                  backgroundColor: AppTheme.inputFill,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  side: BorderSide.none,
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Onerilen: Gunde 2000-3500 ml',
-              style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textLight, fontWeight: FontWeight.w500),
+              children: [1500, 2000, 2500, 3000, 3500].map((ml) => ActionChip(
+                label: Text('$ml', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600)),
+                onPressed: () => controller.text = ml.toString(),
+                backgroundColor: AppTheme.inputFill,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                side: BorderSide.none,
+              )).toList(),
             ),
           ],
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text('Iptal', style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
-          ),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text('İptal', style: GoogleFonts.inter(fontWeight: FontWeight.w600))),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, int.tryParse(controller.text)),
             child: Text('Kaydet', style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
@@ -128,11 +110,69 @@ class _WaterScreenState extends State<WaterScreen> with SingleTickerProviderStat
       ),
     );
     if (result != null && result > 0) {
-      final glasses = (result / _glassSize).ceil();
       setState(() => _goalMl = result);
-      await _storage.setWaterGoal(glasses);
-      _animateProgress();
+      await _storage.setWaterGoal((result / 250).ceil());
+      _animateFill();
     }
+  }
+
+  void _showAddOptions() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(width: 40, height: 4,
+                decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2))),
+            const SizedBox(height: 16),
+            Text('Su Ekle', style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                _buildAmountOption(ctx, 200, Icons.local_cafe_rounded, 'Bardak'),
+                const SizedBox(width: 12),
+                _buildAmountOption(ctx, 350, Icons.coffee_rounded, 'Şişe (küçük)'),
+                const SizedBox(width: 12),
+                _buildAmountOption(ctx, 500, Icons.water_drop_rounded, 'Şişe (büyük)'),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAmountOption(BuildContext ctx, int ml, IconData icon, String label) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          Navigator.pop(ctx);
+          _addWater(ml);
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(colors: [Color(0xFF42A5F5), Color(0xFF90CAF9)]),
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: AppTheme.softShadow(const Color(0xFF42A5F5)),
+          ),
+          child: Column(
+            children: [
+              Icon(icon, color: Colors.white, size: 28),
+              const SizedBox(height: 8),
+              Text('$ml ml', style: GoogleFonts.inter(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 2),
+              Text(label, style: GoogleFonts.inter(color: Colors.white.withValues(alpha: 0.8), fontSize: 11, fontWeight: FontWeight.w500)),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -140,94 +180,148 @@ class _WaterScreenState extends State<WaterScreen> with SingleTickerProviderStat
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: AppTheme.primaryRed,
+        foregroundColor: Colors.white,
         elevation: 0,
         scrolledUnderElevation: 0,
-        title: Text('Su Takibi', style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.w800, color: AppTheme.textDark)),
+        centerTitle: true,
+        title: Text('Su Takibi', style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.w800, color: Colors.white)),
         actions: [
-          _buildHeaderAction(Icons.notifications_active_rounded, () {
-            Navigator.push(context, MaterialPageRoute(builder: (_) => const ReminderSettingsScreen()));
-          }),
-          const SizedBox(width: 8),
-          _buildHeaderAction(Icons.flag_rounded, _editGoal),
-          const SizedBox(width: 12),
+          GestureDetector(
+            onTap: _editGoal,
+            child: Container(
+              width: 36, height: 36,
+              margin: const EdgeInsets.only(right: 12),
+              decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(12)),
+              child: const Icon(Icons.flag_rounded, color: Colors.white, size: 18),
+            ),
+          ),
         ],
       ),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
         children: [
-          // Circular Progress Card
+          // ── Hedef & Kalan ──
           Container(
-            padding: const EdgeInsets.all(28),
+            padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(AppTheme.cardRadius),
               boxShadow: AppTheme.cardShadow,
             ),
-            child: Column(
+            child: Row(
               children: [
-                SizedBox(
-                  width: 200,
-                  height: 200,
-                  child: AnimatedBuilder(
-                    animation: _progressAnim,
-                    builder: (_, __) => CustomPaint(
-                      painter: _GradientCirclePainter(
-                        progress: _progressAnim.value,
-                        gradientColors: const [Color(0xFF42A5F5), Color(0xFF90CAF9)],
-                      ),
-                      child: Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            ShaderMask(
-                              shaderCallback: (bounds) => const LinearGradient(
-                                colors: [Color(0xFF42A5F5), Color(0xFF90CAF9)],
-                              ).createShader(bounds),
-                              child: const Icon(Icons.water_drop_rounded, size: 32, color: Colors.white),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              '$_currentMl',
-                              style: GoogleFonts.inter(fontSize: 36, fontWeight: FontWeight.w800, color: AppTheme.textDark),
-                            ),
-                            Text(
-                              '/ $_goalMl ml',
-                              style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w500, color: AppTheme.textLight),
-                            ),
-                          ],
+                Expanded(
+                  child: Column(
+                    children: [
+                      Text('Günlük Hedef', style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textLight, fontWeight: FontWeight.w600)),
+                      const SizedBox(height: 4),
+                      Text('$_goalMl ml', style: GoogleFonts.inter(fontSize: 22, fontWeight: FontWeight.w800, color: AppTheme.textDark)),
+                    ],
+                  ),
+                ),
+                Container(width: 1, height: 40, color: AppTheme.inputFill),
+                Expanded(
+                  child: Column(
+                    children: [
+                      Text('Kalan', style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textLight, fontWeight: FontWeight.w600)),
+                      const SizedBox(height: 4),
+                      Text(
+                        _totalMl >= _goalMl ? 'Tamam!' : '$_remainingMl ml',
+                        style: GoogleFonts.inter(
+                          fontSize: 22, fontWeight: FontWeight.w800,
+                          color: _totalMl >= _goalMl ? Colors.green : const Color(0xFF42A5F5),
                         ),
                       ),
-                    ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 16),
-                Text(
-                  '$_glasses bardak  -  ${(_goalMl - _currentMl).clamp(0, 99999)} ml kaldi',
-                  style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w500, color: AppTheme.textLight),
-                ),
-                if (_currentMl >= _goalMl) ...[
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      gradient: AppTheme.greenGradient,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      'Tebrikler! Gunluk hedefinize ulastiniz!',
-                      style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13),
-                    ),
-                  ),
-                ],
               ],
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 24),
 
-          // Quick-add pills
+          // ── Su Bardağı + Butonlar ──
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // Eksi butonu
+              GestureDetector(
+                onTap: _removeWater,
+                child: Container(
+                  width: 56, height: 56,
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryRed.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: AppTheme.primaryRed.withValues(alpha: 0.3), width: 2),
+                  ),
+                  child: const Icon(Icons.remove_rounded, color: AppTheme.primaryRed, size: 28),
+                ),
+              ),
+              const SizedBox(width: 24),
+
+              // Animasyonlu su bardağı
+              AnimatedBuilder(
+                animation: _fillAnim,
+                builder: (_, __) => CustomPaint(
+                  size: const Size(120, 160),
+                  painter: _WaterGlassPainter(fillRatio: _fillAnim.value),
+                  child: SizedBox(
+                    width: 120, height: 160,
+                    child: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text('$_totalMl',
+                              style: GoogleFonts.inter(fontSize: 28, fontWeight: FontWeight.w800, color: AppTheme.textDark)),
+                          Text('ml', style: GoogleFonts.inter(fontSize: 14, color: AppTheme.textLight, fontWeight: FontWeight.w600)),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 24),
+
+              // Artı butonu
+              GestureDetector(
+                onTap: _showAddOptions,
+                child: Container(
+                  width: 56, height: 56,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(colors: [Color(0xFF42A5F5), Color(0xFF90CAF9)]),
+                    shape: BoxShape.circle,
+                    boxShadow: AppTheme.softShadow(const Color(0xFF42A5F5)),
+                  ),
+                  child: const Icon(Icons.add_rounded, color: Colors.white, size: 28),
+                ),
+              ),
+            ],
+          ),
+
+          if (_totalMl >= _goalMl)
+            Padding(
+              padding: const EdgeInsets.only(top: 16),
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  decoration: BoxDecoration(
+                    gradient: AppTheme.greenGradient,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: AppTheme.softShadow(Colors.green),
+                  ),
+                  child: Text('Tebrikler! Hedefinize ulaştınız! 🎉',
+                      style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14)),
+                ),
+              ),
+            ),
+
+          const SizedBox(height: 24),
+
+          // ── Progress Bar ──
           Container(
-            padding: const EdgeInsets.all(18),
+            padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(AppTheme.cardRadius),
@@ -236,40 +330,115 @@ class _WaterScreenState extends State<WaterScreen> with SingleTickerProviderStat
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('HIZLI EKLE', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.textLight, letterSpacing: 1)),
+                Text('BUGÜNKÜ TÜKETİM',
+                    style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.textLight, letterSpacing: 1)),
+                const SizedBox(height: 12),
+                AnimatedBuilder(
+                  animation: _fillAnim,
+                  builder: (_, __) => ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: LinearProgressIndicator(
+                      value: _fillAnim.value,
+                      backgroundColor: const Color(0xFF42A5F5).withValues(alpha: 0.12),
+                      valueColor: const AlwaysStoppedAnimation(Color(0xFF42A5F5)),
+                      minHeight: 14,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('$_totalMl ml', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 14, color: const Color(0xFF42A5F5))),
+                    Text('$_goalMl ml', style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 13, color: AppTheme.textLight)),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${(_fillRatio * 100).toStringAsFixed(0)}% tamamlandı',
+                  style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textLight, fontWeight: FontWeight.w500),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // ── Hatırlatıcılar ──
+          Container(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+              boxShadow: AppTheme.cardShadow,
+            ),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 42, height: 42,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF42A5F5).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: const Icon(Icons.notifications_rounded, color: Color(0xFF42A5F5), size: 22),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _remindersEnabled ? 'Hatırlatıcılar Açık' : 'Hatırlatıcılar Kapalı',
+                            style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 15, color: AppTheme.textDark),
+                          ),
+                          Text(
+                            'Düzenli su içmeyi unutma',
+                            style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textLight, fontWeight: FontWeight.w500),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Switch(
+                      value: _remindersEnabled,
+                      activeColor: const Color(0xFF42A5F5),
+                      onChanged: (v) async {
+                        setState(() => _remindersEnabled = v);
+                        await _storage.setReminderEnabled('water', v);
+                      },
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 14),
+                const Divider(height: 1),
+                const SizedBox(height: 10),
                 Row(
                   children: [
                     Expanded(
-                      child: _buildQuickPill(
-                        icon: Icons.remove_rounded,
-                        label: 'Cikar',
-                        colors: [Colors.grey.shade400, Colors.grey.shade300],
-                        onTap: _removeGlass,
+                      child: GestureDetector(
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ReminderSettingsScreen())),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.schedule_rounded, size: 16, color: const Color(0xFF42A5F5)),
+                            const SizedBox(width: 6),
+                            Text('Zaman Ayarla', style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF42A5F5), fontWeight: FontWeight.w600)),
+                          ],
+                        ),
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    Container(width: 1, height: 20, color: AppTheme.inputFill),
                     Expanded(
-                      flex: 2,
-                      child: _buildQuickPill(
-                        icon: Icons.water_drop_rounded,
-                        label: '+250 ml',
-                        colors: const [Color(0xFF42A5F5), Color(0xFF90CAF9)],
-                        onTap: _addGlass,
-                        large: true,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildQuickPill(
-                        icon: Icons.refresh_rounded,
-                        label: 'Sifirla',
-                        colors: [Colors.grey.shade400, Colors.grey.shade300],
-                        onTap: () {
-                          setState(() => _glasses = 0);
-                          _storage.setWaterGlasses(DateTime.now(), 0);
-                          _animateProgress();
-                        },
+                      child: GestureDetector(
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ReminderSettingsScreen())),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.volume_up_rounded, size: 16, color: const Color(0xFF42A5F5)),
+                            const SizedBox(width: 6),
+                            Text('Bildirim Sesi', style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF42A5F5), fontWeight: FontWeight.w600)),
+                          ],
+                        ),
                       ),
                     ),
                   ],
@@ -277,158 +446,104 @@ class _WaterScreenState extends State<WaterScreen> with SingleTickerProviderStat
               ],
             ),
           ),
-          const SizedBox(height: 20),
-
-          // Glass grid
-          Container(
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(AppTheme.cardRadius),
-              boxShadow: AppTheme.cardShadow,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('BUGUNKU SU TUKETIMIN', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.textLight, letterSpacing: 1)),
-                const SizedBox(height: 14),
-                GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 5,
-                    mainAxisSpacing: 10,
-                    crossAxisSpacing: 10,
-                  ),
-                  itemCount: _goal,
-                  itemBuilder: (context, index) {
-                    final filled = index < _glasses;
-                    return AnimatedContainer(
-                      duration: const Duration(milliseconds: 300),
-                      curve: Curves.easeOut,
-                      decoration: BoxDecoration(
-                        gradient: filled
-                            ? const LinearGradient(
-                                colors: [Color(0xFF42A5F5), Color(0xFF90CAF9)],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              )
-                            : null,
-                        color: filled ? null : const Color(0xFFF0F1F5),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Icon(
-                        Icons.water_drop_rounded,
-                        color: filled ? Colors.white : Colors.grey.shade300,
-                        size: 24,
-                      ),
-                    );
-                  },
-                ),
-              ],
-            ),
-          ),
+          const SizedBox(height: 16),
         ],
-      ),
-    );
-  }
-
-  Widget _buildHeaderAction(IconData icon, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 40, height: 40,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          boxShadow: AppTheme.cardShadow,
-        ),
-        child: Icon(icon, color: AppTheme.textDark, size: 18),
-      ),
-    );
-  }
-
-  Widget _buildQuickPill({
-    required IconData icon,
-    required String label,
-    required List<Color> colors,
-    required VoidCallback onTap,
-    bool large = false,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: EdgeInsets.symmetric(vertical: large ? 16 : 12),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(colors: colors),
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: colors.first.withValues(alpha: 0.25),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, color: Colors.white, size: large ? 24 : 20),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: GoogleFonts.inter(color: Colors.white, fontSize: large ? 13 : 11, fontWeight: FontWeight.w600),
-            ),
-          ],
-        ),
       ),
     );
   }
 }
 
-class _GradientCirclePainter extends CustomPainter {
-  final double progress;
-  final List<Color> gradientColors;
-
-  _GradientCirclePainter({required this.progress, required this.gradientColors});
+// ── Water Glass Painter ──
+class _WaterGlassPainter extends CustomPainter {
+  final double fillRatio;
+  _WaterGlassPainter({required this.fillRatio});
 
   @override
   void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2 - 14;
+    final w = size.width;
+    final h = size.height;
+    final inset = 16.0;
+    final topWidth = w - inset;
+    final bottomWidth = w * 0.65;
+    final cornerRadius = 14.0;
+    final glassTop = 10.0;
+    final glassBottom = h - 10;
+    final glassHeight = glassBottom - glassTop;
 
-    final bgPaint = Paint()
-      ..color = gradientColors.first.withValues(alpha: 0.12)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 14
-      ..strokeCap = StrokeCap.round;
+    // Glass outline path (trapezoid)
+    final glassPath = Path();
+    final topLeft = (w - topWidth) / 2;
+    final topRight = topLeft + topWidth;
+    final botLeft = (w - bottomWidth) / 2;
+    final botRight = botLeft + bottomWidth;
 
-    canvas.drawCircle(center, radius, bgPaint);
+    glassPath.moveTo(topLeft + cornerRadius, glassTop);
+    glassPath.lineTo(topRight - cornerRadius, glassTop);
+    glassPath.quadraticBezierTo(topRight, glassTop, topRight - 2, glassTop + cornerRadius);
+    glassPath.lineTo(botRight + 2, glassBottom - cornerRadius);
+    glassPath.quadraticBezierTo(botRight, glassBottom, botRight - cornerRadius, glassBottom);
+    glassPath.lineTo(botLeft + cornerRadius, glassBottom);
+    glassPath.quadraticBezierTo(botLeft, glassBottom, botLeft + 2, glassBottom - cornerRadius);
+    glassPath.lineTo(topLeft + 2, glassTop + cornerRadius);
+    glassPath.quadraticBezierTo(topLeft, glassTop, topLeft + cornerRadius, glassTop);
+    glassPath.close();
 
-    if (progress > 0) {
-      final rect = Rect.fromCircle(center: center, radius: radius);
-      final gradient = SweepGradient(
-        startAngle: -math.pi / 2,
-        endAngle: -math.pi / 2 + 2 * math.pi,
-        colors: gradientColors,
-      );
+    // Glass background
+    final bgPaint = Paint()..color = const Color(0xFFF0F4FF);
+    canvas.drawPath(glassPath, bgPaint);
 
-      final fgPaint = Paint()
-        ..shader = gradient.createShader(rect)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 14
-        ..strokeCap = StrokeCap.round;
+    // Water fill
+    if (fillRatio > 0) {
+      final waterTop = glassBottom - (glassHeight * fillRatio.clamp(0.0, 1.0));
+      final waterLeftAtTop = topLeft + (botLeft - topLeft) * ((waterTop - glassTop) / glassHeight);
+      final waterRightAtTop = topRight + (botRight - topRight) * ((waterTop - glassTop) / glassHeight);
 
-      canvas.drawArc(
-        rect,
-        -math.pi / 2,
-        2 * math.pi * progress,
-        false,
-        fgPaint,
-      );
+      final waterPath = Path();
+      // Wavy top
+      waterPath.moveTo(waterLeftAtTop + 4, waterTop);
+      final waveW = (waterRightAtTop - waterLeftAtTop) / 3;
+      waterPath.quadraticBezierTo(waterLeftAtTop + waveW, waterTop - 4, waterLeftAtTop + waveW * 1.5, waterTop);
+      waterPath.quadraticBezierTo(waterLeftAtTop + waveW * 2, waterTop + 4, waterLeftAtTop + waveW * 2.5, waterTop);
+      waterPath.lineTo(waterRightAtTop - 4, waterTop);
+      // Right side
+      waterPath.lineTo(botRight - 2, glassBottom - cornerRadius);
+      waterPath.quadraticBezierTo(botRight, glassBottom, botRight - cornerRadius, glassBottom);
+      // Bottom
+      waterPath.lineTo(botLeft + cornerRadius, glassBottom);
+      waterPath.quadraticBezierTo(botLeft, glassBottom, botLeft + 2, glassBottom - cornerRadius);
+      // Left side
+      waterPath.lineTo(waterLeftAtTop + 4, waterTop);
+      waterPath.close();
+
+      // Clip to glass
+      canvas.save();
+      canvas.clipPath(glassPath);
+
+      // Blue gradient based on fill
+      final blueIntensity = (0.3 + fillRatio * 0.7).clamp(0.0, 1.0);
+      final waterPaint = Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Color.lerp(const Color(0xFFBBDEFB), const Color(0xFF42A5F5), blueIntensity)!,
+            Color.lerp(const Color(0xFF90CAF9), const Color(0xFF1E88E5), blueIntensity)!,
+          ],
+        ).createShader(Rect.fromLTWH(0, waterTop, w, glassBottom - waterTop));
+
+      canvas.drawPath(waterPath, waterPaint);
+      canvas.restore();
     }
+
+    // Glass border
+    final borderPaint = Paint()
+      ..color = const Color(0xFFB0BEC5)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.5
+      ..strokeCap = StrokeCap.round;
+    canvas.drawPath(glassPath, borderPaint);
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+  bool shouldRepaint(covariant _WaterGlassPainter old) => old.fillRatio != fillRatio;
 }
