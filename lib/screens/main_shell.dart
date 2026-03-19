@@ -9,6 +9,7 @@ import '../services/auth_service.dart';
 import '../widgets/alarm_overlay.dart';
 import 'home_screen.dart';
 import 'daily_report_screen.dart';
+import 'risk_screen.dart';
 import 'info_screen.dart';
 import 'settings_screen.dart';
 
@@ -180,6 +181,30 @@ class _MainShellState extends State<MainShell> {
             ),
         ],
       ),
+      floatingActionButton: Container(
+        width: 60,
+        height: 60,
+        margin: const EdgeInsets.only(top: 30),
+        decoration: BoxDecoration(
+          gradient: AppTheme.primaryGradient2,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: AppTheme.primaryRed.withValues(alpha: 0.4),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: FloatingActionButton(
+          onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RiskScreen())),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          shape: const CircleBorder(),
+          child: const Icon(Icons.favorite_rounded, color: Colors.white, size: 28),
+        ),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -199,6 +224,8 @@ class _MainShellState extends State<MainShell> {
               children: [
                 _buildNavItem(0, Icons.home_rounded, Icons.home_outlined, 'Ana Sayfa'),
                 _buildNavItem(1, Icons.assessment_rounded, Icons.assessment_outlined, 'Rapor'),
+                // Center FAB spacer
+                const SizedBox(width: 56),
                 _buildNavItem(2, Icons.auto_stories_rounded, Icons.auto_stories_outlined, 'Bilgi'),
                 _buildNavItem(3, Icons.person_rounded, Icons.person_outline_rounded, 'Profil'),
               ],

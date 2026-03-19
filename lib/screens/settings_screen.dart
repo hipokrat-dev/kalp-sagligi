@@ -6,8 +6,6 @@ import '../services/health_connect_service.dart';
 import '../services/storage_service.dart';
 import 'login_screen.dart';
 import 'reminder_settings_screen.dart';
-import 'risk_screen.dart';
-import 'blood_pressure_screen.dart';
 import 'friends_screen.dart';
 import 'challenges_screen.dart';
 
@@ -350,38 +348,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   title: 'Challenge Yarismalari',
                   subtitle: 'Arkadaslarinla saglik yarismasi olustur',
                   onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ChallengesScreen())),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
-
-          // Risk Assessment
-          Text('SAGLIK DEGERLENDIRMESI', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.textLight, letterSpacing: 1)),
-          const SizedBox(height: 12),
-
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(AppTheme.cardRadius),
-              boxShadow: AppTheme.cardShadow,
-            ),
-            child: Column(
-              children: [
-                _buildSettingTile(
-                  icon: Icons.shield_rounded,
-                  iconColor: Colors.orange,
-                  title: 'Kalp Riski Degerlendirmesi',
-                  subtitle: 'Risk faktorlerinizi kontrol edin',
-                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RiskScreen())),
-                ),
-                const Divider(height: 1, indent: 60),
-                _buildSettingTile(
-                  icon: Icons.monitor_heart_rounded,
-                  iconColor: AppTheme.primaryRed,
-                  title: 'Tansiyon & Nabiz',
-                  subtitle: 'Tansiyon ve nabiz kayitlariniz',
-                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const BloodPressureScreen())),
                 ),
               ],
             ),
