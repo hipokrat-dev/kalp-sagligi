@@ -32,6 +32,10 @@ class _RiskScreenState extends State<RiskScreen> with SingleTickerProviderStateM
   bool _hypertension = false;
   bool _diabetes = false;
   bool _hyperlipidemia = false;
+  // Medication
+  bool _hypertensionMed = false;
+  bool _diabetesMed = false;
+  bool _hyperlipidemiaMed = false;
 
   double _height = 0, _weight = 0;
 
@@ -60,6 +64,9 @@ class _RiskScreenState extends State<RiskScreen> with SingleTickerProviderStateM
         _hypertension = data['hypertension'] ?? false;
         _diabetes = data['diabetes'] ?? false;
         _hyperlipidemia = data['hyperlipidemia'] ?? false;
+        _hypertensionMed = data['hypertensionMed'] ?? false;
+        _diabetesMed = data['diabetesMed'] ?? false;
+        _hyperlipidemiaMed = data['hyperlipidemiaMed'] ?? false;
         _noSmoking = !(data['smoking'] ?? false);
         _regularExercise = !(data['inactivity'] ?? true);
         _balancedDiet = data['balancedDiet'] ?? false;
@@ -83,6 +90,9 @@ class _RiskScreenState extends State<RiskScreen> with SingleTickerProviderStateM
       'hypertension': _hypertension,
       'hyperlipidemia': _hyperlipidemia,
       'diabetes': _diabetes,
+      'hypertensionMed': _hypertensionMed,
+      'diabetesMed': _diabetesMed,
+      'hyperlipidemiaMed': _hyperlipidemiaMed,
       'inactivity': !_regularExercise,
       'balancedDiet': _balancedDiet,
       'noAlcohol': _noAlcohol,
@@ -298,14 +308,17 @@ class _RiskScreenState extends State<RiskScreen> with SingleTickerProviderStateM
           Text('TIBBİ RİSK FAKTÖRLERİ', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.textLight, letterSpacing: 1)),
           const SizedBox(height: 12),
 
-          _riskItem(Icons.family_restroom_rounded, 'Aile Öyküsü', 'Ailede erken yaşta kalp hastalığı', _familyHistory,
-              (v) { setState(() => _familyHistory = v); _saveData(); }),
-          _riskItem(Icons.monitor_heart_rounded, 'Hipertansiyon', 'Yüksek tansiyon tanısı', _hypertension,
-              (v) { setState(() => _hypertension = v); _saveData(); }),
-          _riskItem(Icons.water_drop_rounded, 'Diyabet', 'Tip 1 veya Tip 2 diyabet', _diabetes,
-              (v) { setState(() => _diabetes = v); _saveData(); }),
-          _riskItem(Icons.bloodtype_rounded, 'Hiperlipidemi', 'Yüksek kolesterol / trigliserit', _hyperlipidemia,
-              (v) { setState(() => _hyperlipidemia = v); _saveData(); }),
+          _riskItem(Icons.family_restroom_rounded, 'Aile Öyküsü', 'Ailede erken yaşta kalp hastalığı', _familyHistory, null,
+              (v) { setState(() => _familyHistory = v); _saveData(); }, null),
+          _riskItemWithMed(Icons.monitor_heart_rounded, 'Yüksek Tansiyon', 'Tansiyon değerleri normalin üstünde', _hypertension, _hypertensionMed,
+              (v) { setState(() => _hypertension = v); if (!v) setState(() => _hypertensionMed = false); _saveData(); },
+              (v) { setState(() => _hypertensionMed = v); _saveData(); }),
+          _riskItemWithMed(Icons.water_drop_rounded, 'Yüksek Şeker', 'Kan şekeri değerleri normalin üstünde', _diabetes, _diabetesMed,
+              (v) { setState(() => _diabetes = v); if (!v) setState(() => _diabetesMed = false); _saveData(); },
+              (v) { setState(() => _diabetesMed = v); _saveData(); }),
+          _riskItemWithMed(Icons.bloodtype_rounded, 'Yüksek Kolesterol', 'Kolesterol veya trigliserit yüksekliği', _hyperlipidemia, _hyperlipidemiaMed,
+              (v) { setState(() => _hyperlipidemia = v); if (!v) setState(() => _hyperlipidemiaMed = false); _saveData(); },
+              (v) { setState(() => _hyperlipidemiaMed = v); _saveData(); }),
 
           const SizedBox(height: 20),
 
@@ -370,7 +383,7 @@ class _RiskScreenState extends State<RiskScreen> with SingleTickerProviderStateM
     );
   }
 
-  Widget _riskItem(IconData icon, String title, String sub, bool value, ValueChanged<bool> onChanged) {
+  Widget _riskItem(IconData icon, String title, String sub, bool value, bool? medValue, ValueChanged<bool> onChanged, ValueChanged<bool>? onMedChanged) {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
@@ -406,6 +419,93 @@ class _RiskScreenState extends State<RiskScreen> with SingleTickerProviderStateM
         subtitle: Text(sub, style: GoogleFonts.inter(fontSize: 11, color: AppTheme.textLight, fontWeight: FontWeight.w500)),
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      ),
+    );
+  }
+
+  Widget _riskItemWithMed(IconData icon, String title, String sub, bool value, bool medValue,
+      ValueChanged<bool> onChanged, ValueChanged<bool> onMedChanged) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: AppTheme.cardShadow,
+        border: value ? Border.all(color: AppTheme.primaryRed.withValues(alpha: 0.3)) : null,
+      ),
+      child: Column(
+        children: [
+          SwitchListTile(
+            value: value,
+            onChanged: onChanged,
+            activeTrackColor: AppTheme.primaryRed.withValues(alpha: 0.4),
+            activeThumbColor: AppTheme.primaryRed,
+            secondary: Container(
+              width: 38, height: 38,
+              decoration: BoxDecoration(
+                color: (value ? AppTheme.primaryRed : AppTheme.textLight).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: value ? AppTheme.primaryRed : AppTheme.textLight, size: 20),
+            ),
+            title: Row(
+              children: [
+                Expanded(child: Text(title, style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 14, color: AppTheme.textDark))),
+                if (value)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(color: AppTheme.primaryRed.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
+                    child: Text('Risk', style: GoogleFonts.inter(color: AppTheme.primaryRed, fontSize: 9, fontWeight: FontWeight.w700)),
+                  ),
+              ],
+            ),
+            subtitle: Text(sub, style: GoogleFonts.inter(fontSize: 11, color: AppTheme.textLight, fontWeight: FontWeight.w500)),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          ),
+          if (value) ...[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
+              child: GestureDetector(
+                onTap: () => onMedChanged(!medValue),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: medValue ? const Color(0xFF42A5F5).withValues(alpha: 0.08) : AppTheme.inputFill,
+                    borderRadius: BorderRadius.circular(12),
+                    border: medValue ? Border.all(color: const Color(0xFF42A5F5).withValues(alpha: 0.3)) : null,
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 22, height: 22,
+                        decoration: BoxDecoration(
+                          color: medValue ? const Color(0xFF42A5F5) : Colors.transparent,
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color: medValue ? const Color(0xFF42A5F5) : AppTheme.textLight.withValues(alpha: 0.4),
+                            width: 2,
+                          ),
+                        ),
+                        child: medValue ? const Icon(Icons.check_rounded, color: Colors.white, size: 14) : null,
+                      ),
+                      const SizedBox(width: 10),
+                      Icon(Icons.medication_rounded, size: 16,
+                          color: medValue ? const Color(0xFF42A5F5) : AppTheme.textLight),
+                      const SizedBox(width: 6),
+                      Text('İlaç kullanıyorum',
+                          style: GoogleFonts.inter(
+                            fontSize: 13,
+                            fontWeight: medValue ? FontWeight.w700 : FontWeight.w500,
+                            color: medValue ? const Color(0xFF42A5F5) : AppTheme.textLight,
+                          )),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
